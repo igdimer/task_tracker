@@ -1,0 +1,8 @@
+django==4.2.*
+django-environ==0.10.*
+django-filter==23.2
+django-redis==5.3.*
+djangorestframework==3.14.*
+celery[redis,yaml]==5.3.*
+psycopg2-binary==2.9.*
+pyjwt==2.7.*
