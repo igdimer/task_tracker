@@ -85,5 +85,13 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'server.apps.api.exception_handlers.custom_api_exception_handler',
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
+}
+
 AUTH_SECRET = env.str('AUTH_SECRET')
 JWT_TOKEN_SECRET = env.str('JWT_TOKEN_SECRET')
