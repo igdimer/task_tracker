@@ -1,0 +1,9 @@
+from rest_framework import status
+
+from ..exceptions import CustomApiError
+
+
+class UniqueProjectConstraintError(CustomApiError):  # noqa: D101
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = 'Project already exists with some of provided fields.'
+
