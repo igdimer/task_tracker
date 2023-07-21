@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Project, Release, Issue, Comment
+from .models import Comment, Issue, Project, Release
 
 
 @admin.register(Project)
@@ -21,7 +21,7 @@ class ReleaseAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 class IssueAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     """Issue representation on admin site."""
 
-    list_display = ('project', 'title', 'status', 'author', 'performer')
+    list_display = ('project', 'title', 'status', 'author', 'assignee')
 
 
 @admin.register(Comment)

@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from server.apps.auth.services import AuthService
+from server.apps.users.services import UserService
 
 from . import exceptions
 
@@ -52,13 +53,13 @@ class LoginApi(APIView):
         access_token = serializers.CharField()
         refresh_token = serializers.CharField()
 
-    def get(self, request: Request) -> Response:  # noqa: D102
+    def post(self, request: Request) -> Response:  # noqa: D102
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
             result = AuthService.login(**serializer.validated_data)
-        except AuthService.UserNotFoundError as exc:
+        except UserService.UserNotFoundError as exc:
             raise NotFound() from exc
         except AuthService.InvalidPasswordError as exc:
             raise exceptions.InvalidPasswordError() from exc
@@ -77,13 +78,13 @@ class RefreshTokenApi(APIView):
         access_token = serializers.CharField()
         refresh_token = serializers.CharField()
 
-    def get(self, request: Request) -> Response:  # noqa: D102
+    def post(self, request: Request) -> Response:  # noqa: D102
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
             result = AuthService.refresh_token(**serializer.validated_data)
-        except AuthService.UserNotFoundError as exc:
+        except UserService.UserNotFoundError as exc:
             raise NotFound() from exc
         except AuthService.InvalidRefreshTokenError as exc:
             raise exceptions.RefreshTokenFailError() from exc

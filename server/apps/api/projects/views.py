@@ -1,13 +1,13 @@
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from server.apps.issues.services import ProjectService
 from server.apps.auth.authentication import TokenAuthentication
-from ..utils import inline_serializer
+from server.apps.issues.services import ProjectService
 
+from ..utils import inline_serializer
 from . import exceptions
 
 
@@ -43,12 +43,19 @@ class ProjectUpdateApi(APIView):
         code = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
 
-    def patch(self, request: Request) -> Response:  # noqa: D102
+        def validate(self, attrs):
+            """Validate at least one necessary field was provided."""
+            if not attrs:
+                raise ValidationError('No necessary fields were passed.')
+
+            return attrs
+
+    def patch(self, request: Request, project_id: int) -> Response:  # noqa: D102
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
-            ProjectService.update(**serializer.validated_data)
+            ProjectService.update(project_id=project_id, **serializer.validated_data)
         except ProjectService.ProjectNotFoundError as exc:
             raise NotFound() from exc
         except ProjectService.UniqueFieldsError as exc:
@@ -68,11 +75,11 @@ class ProjectDetailApi(APIView):
         description = serializers.CharField()
         issues = serializers.ListField(
             child=inline_serializer(fields={
-                'code': serializers.CharField(source='__str__'),
+                'code': serializers.CharField(),
                 'title': serializers.CharField(),
                 'status': serializers.CharField(),
                 'release': serializers.CharField(),
-                'performer': serializers. CharField(),
+                'assignee': serializers.CharField(),
             }),
         )
 
@@ -82,5 +89,5 @@ class ProjectDetailApi(APIView):
         except ProjectService.ProjectNotFoundError as exc:
             raise NotFound() from exc
 
-        data = self.OutputSerializer(project)
+        data = self.OutputSerializer(project).data
         return Response(data)

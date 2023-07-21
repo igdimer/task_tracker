@@ -7,7 +7,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 
 from server.apps.users.models import User
-from server.apps.auth.services import AuthService
+from server.apps.users.services import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,8 @@ class TokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed()
 
         try:
-            user = AuthService.get_or_error(email=user_email)
-        except AuthService.UserNotFoundError:
+            user = UserService.get_by_email(email=user_email)
+        except UserService.UserNotFoundError:
             raise AuthenticationFailed(detail=f'User {user_email} not found.')
         except Exception as exc:
             logger.exception(exc)

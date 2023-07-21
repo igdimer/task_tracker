@@ -14,7 +14,7 @@ def custom_api_exception_handler(exc: Exception, context) -> Response:
 
     if isinstance(exc, ValidationError):
         response.data = {
-            'detail': exc,
+            'detail': exc.detail,
         }
 
     if response is None:

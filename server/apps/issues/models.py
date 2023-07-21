@@ -3,8 +3,9 @@ import datetime
 from django.db import models
 
 from server.apps.core.models import BaseModel
+
 from ..users.models import User
-from .enums import ReleaseStatusEnum, IssueStatusEnum
+from .enums import IssueStatusEnum, ReleaseStatusEnum
 
 
 class Project(BaseModel):
@@ -29,7 +30,7 @@ class Release(BaseModel):
 
     version = models.CharField(max_length=20)
     description = models.TextField()
-    release_date = models.DateTimeField(null=True)
+    release_date = models.DateField(null=True)
     status = models.CharField(max_length=20, choices=ReleaseStatusEnum.choices)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
 
@@ -46,7 +47,7 @@ class Release(BaseModel):
 
     def __str__(self) -> str:
         """Text representation."""
-        return f'{self.project.title}: {self.version}'
+        return f'{self.project.code}: {self.version}'
 
 
 class Issue(BaseModel):
@@ -54,12 +55,12 @@ class Issue(BaseModel):
 
     title = models.CharField(max_length=200)
     description = models.TextField()
-    number = models.IntegerField()
-    estimated_time = models.DurationField()
-    logged_time = models.DurationField()
+    code = models.CharField(max_length=25, unique=True)
+    estimated_time = models.DurationField(default=datetime.timedelta(seconds=0))
+    logged_time = models.DurationField(default=datetime.timedelta(seconds=0))
     status = models.CharField(max_length=20, choices=IssueStatusEnum.choices)
     author = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='reported_issues')
-    performer = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='my_issues')
+    assignee = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='my_issues')
     project = models.ForeignKey(Project, on_delete=models.RESTRICT)
     release = models.ForeignKey(Release, on_delete=models.RESTRICT, null=True, blank=True)
 
@@ -67,12 +68,17 @@ class Issue(BaseModel):
         db_table = 'issues'
         verbose_name = 'issue'
         verbose_name_plural = 'issues'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['project', 'number'],
-                name='issue_project_id_number_key',
-            ),
-        ]
+
+    def __str__(self) -> str:
+        """Text representation."""
+        return self.code
+
+    def save(self, *args, **kwargs) -> None:
+        """Additionally set field 'number'."""
+        project = self.project
+        issue_count = Issue.objects.filter(project=project).count()
+        self.code = f'{project.code}-{issue_count + 1}'
+        super().save(*args, **kwargs)
 
     @property
     def remaining_time(self) -> datetime.timedelta:
@@ -81,17 +87,6 @@ class Issue(BaseModel):
             return datetime.timedelta(seconds=0)
 
         return self.estimated_time - self.logged_time
-
-    def save(self, *args, **kwargs) -> None:
-        """Additionally set field 'number'."""
-        project = kwargs.get('project')
-        issue_count = Issue.objects.filter(project=project).count()
-        kwargs['number'] = issue_count + 1
-        super().save(*args, **kwargs)
-
-    def __str__(self) -> str:
-        """Text representation."""
-        return f'{self.project.code}-{self.number}'
 
 
 class Comment(BaseModel):

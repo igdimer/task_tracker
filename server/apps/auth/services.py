@@ -6,38 +6,26 @@ from django.conf import settings
 from django.utils import timezone
 
 from server.apps.core.exceptions import BaseServiceError
+from server.apps.users.models import User
+from server.apps.users.services import UserService
 
 from .constants import ACCESS_TOKEN_LIFETIME_DAYS, REFRESH_TOKEN_LIFETIME_DAYS
-from server.apps.users.models import User
 
 
 class AuthService:
     """Service for authentication."""
 
     class UserAlreadyExistError(BaseServiceError):
-        """User with specified email already exists in database."""
+        """User with provided email already exists in database."""
 
     class InvalidAuthSecretError(BaseServiceError):
         """Invalid secret was used to set user as admin."""
-
-    class UserNotFoundError(BaseServiceError):
-        """User with specified email does not exist."""
 
     class InvalidPasswordError(BaseServiceError):
         """Invalid password was provided."""
 
     class InvalidRefreshTokenError(BaseServiceError):
         """Invalid refresh token was provided."""
-
-    @classmethod
-    def get_or_error(cls, email: str) -> User:
-        """Get user or raise exception."""
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise cls.UserNotFoundError()
-
-        return user
 
     @classmethod
     def signup(  # noqa: S107
@@ -68,12 +56,12 @@ class AuthService:
         if not created:
             raise cls.UserAlreadyExistError()
 
-        return {'email': email, 'first_name': first_name, 'last_name': last_name}
+        return {'email': email}
 
     @classmethod
     def login(cls, email: str, password: str) -> dict[str, str]:
         """Log in."""
-        user = cls.get_or_error(email)
+        user = UserService.get_by_email(email)
 
         hashed_password = cls._hash_password(password=password, email=email)
         if user.password != hashed_password:
@@ -95,7 +83,7 @@ class AuthService:
         except KeyError as exc:
             raise cls.InvalidRefreshTokenError() from exc
 
-        cls.get_or_error(user_email)
+        UserService.get_by_email(user_email)
         if token_type != 'refresh':  # noqa: S105
             raise cls.InvalidRefreshTokenError()
 
