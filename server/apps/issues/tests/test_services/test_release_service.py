@@ -14,14 +14,12 @@ class TestReleaseServiceGetById:
     def test_release_exist(self, release):
         """Release exists."""
         ReleaseFactory()
-        result = ReleaseService.get_by_id(release.id)
+        result_release = ReleaseService.get_by_id(release.id)
 
-        assert result == {
-            'version': release.version,
-            'description': release.description,
-            'release_date': release.release_date,
-            'status': release.status,
-        }
+        assert result_release.version == release.version
+        assert result_release.description == release.description
+        assert result_release.release_date == release.release_date
+        assert result_release.status == release.status
 
     def test_release_not_found(self):
         """Release does not exist."""

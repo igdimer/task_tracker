@@ -1,7 +1,6 @@
 import pytest
 
-from server.apps.issues.tests.factories import IssueFactory, ProjectFactory
-from server.apps.issues.enums import IssueStatusEnum
+from server.apps.issues.tests.factories import IssueFactory
 
 from ..services import UserService
 from .factories import UserFactory

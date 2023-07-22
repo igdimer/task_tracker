@@ -18,7 +18,7 @@ class UserService:
         """User with provided email already exists."""
 
     @classmethod
-    def _get_user_by_id(cls, user_id: int) -> User:
+    def get_user_by_id(cls, user_id: int) -> User:
         """Get user by id or raise exception."""
         try:
             user = User.objects.get(id=user_id)
@@ -40,7 +40,7 @@ class UserService:
     @classmethod
     def get_by_id(cls, user_id: int) -> dict[str, str | list[dict[str, str | None]] | bool]:
         """Get user by id."""
-        user = cls._get_user_by_id(user_id)
+        user = cls.get_user_by_id(user_id)
 
         issues = Issue.objects.filter(assignee=user).select_related('release')
 
@@ -64,7 +64,7 @@ class UserService:
     @classmethod
     def update(cls, user_id: int, **kwargs) -> None:
         """Update existing user."""
-        user = cls._get_user_by_id(user_id)
+        user = cls.get_user_by_id(user_id)
 
         for key, value in kwargs.items():
             if value is not None:

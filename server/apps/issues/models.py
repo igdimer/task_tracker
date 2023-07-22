@@ -30,7 +30,7 @@ class Release(BaseModel):
 
     version = models.CharField(max_length=20)
     description = models.TextField()
-    release_date = models.DateField(null=True)
+    release_date = models.DateField(null=True, blank=True)
     status = models.CharField(
         max_length=20,
         choices=ReleaseStatusEnum.choices,
@@ -60,9 +60,13 @@ class Issue(BaseModel):
     title = models.CharField(max_length=200)
     description = models.TextField()
     code = models.CharField(max_length=25, unique=True, blank=True)
-    estimated_time = models.DurationField(default=datetime.timedelta(seconds=0))
-    logged_time = models.DurationField(default=datetime.timedelta(seconds=0), null=True, blank=True)
-    status = models.CharField(max_length=20, choices=IssueStatusEnum.choices)
+    estimated_time = models.DurationField()
+    logged_time = models.DurationField(default=datetime.timedelta(seconds=0))
+    status = models.CharField(
+        max_length=20,
+        choices=IssueStatusEnum.choices,
+        default=IssueStatusEnum.OPEN,
+    )
     author = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='reported_issues')
     assignee = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='my_issues')
     project = models.ForeignKey(Project, on_delete=models.RESTRICT)
