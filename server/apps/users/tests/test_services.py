@@ -1,6 +1,7 @@
 import pytest
 
-from server.apps.issues.tests.factories import IssueFactory
+from server.apps.issues.tests.factories import IssueFactory, ProjectFactory
+from server.apps.issues.enums import IssueStatusEnum
 
 from ..services import UserService
 from .factories import UserFactory
@@ -92,7 +93,7 @@ class TestUserServiceUpdate:
         """User with updated email already exists."""
         UserFactory(email='unique@mail.com')
 
-        with pytest.raises(UserService.UniqueEmailError):
+        with pytest.raises(UserService.UserAlreadyExist):
             UserService.update(user.id, email='unique@mail.com')
 
 

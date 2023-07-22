@@ -14,7 +14,7 @@ class UserService:
     class UserNotFoundError(BaseServiceError):
         """User with specified email does not exist."""
 
-    class UniqueEmailError(BaseServiceError):
+    class UserAlreadyExist(BaseServiceError):
         """User with provided email already exists."""
 
     @classmethod
@@ -73,7 +73,7 @@ class UserService:
         try:
             user.save()
         except IntegrityError as exc:
-            raise cls.UniqueEmailError() from exc
+            raise cls.UserAlreadyExist() from exc
 
     @classmethod
     def get_assigned_issues(
@@ -82,6 +82,7 @@ class UserService:
     ) -> dict[str, list[dict[str, str | datetime.timedelta]]]:
         """Get issues assigned to authenticated user."""
         issues = user.my_issues.all().select_related('release')  # type: ignore[attr-defined]
+
         issue_data = []
         for issue in issues:
             issue_data.append({
@@ -89,7 +90,7 @@ class UserService:
                 'code': issue.code,
                 'status': issue.status,
                 'estimated_time': issue.estimated_time,
-                'release': issue.release.version,
+                'release': issue.release.version if issue.release else None,
             })
 
         return {'issues': issue_data}

@@ -65,7 +65,7 @@ class UserUpdateApi(APIView):
             UserService.update(user_id=user_id, **serializer.validated_data)
         except UserService.UserNotFoundError as exc:
             raise NotFound() from exc
-        except UserService.UniqueEmailError as exc:
+        except UserService.UserAlreadyExist as exc:
             raise exceptions.UniqueUserConstraintError() from exc
 
         return Response({})

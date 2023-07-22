@@ -22,6 +22,7 @@ class IssueAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     """Issue representation on admin site."""
 
     list_display = ('project', 'title', 'status', 'author', 'assignee')
+    readonly_fields = ('code', )
 
 
 @admin.register(Comment)

@@ -1,8 +1,8 @@
 import pytest
 
-from ..models import Project
-from ..services import ProjectService
-from .factories import IssueFactory, ProjectFactory
+from server.apps.issues.models import Project
+from server.apps.issues.services import ProjectService
+from server.apps.issues.tests.factories import IssueFactory, ProjectFactory
 
 
 @pytest.mark.django_db()
@@ -68,7 +68,7 @@ class TestProjectServiceCreate:
     def test_unique_fields_error(self, project, title, code):
         """Project with provided fields already exists."""
         assert Project.objects.all().count() == 1
-        with pytest.raises(ProjectService.UniqueFieldsError):
+        with pytest.raises(ProjectService.ProjectAlreadyExist):
             ProjectService.create(title=title, code=code, description='test_description')
 
         assert Project.objects.all().count() == 1
@@ -105,7 +105,7 @@ class TestProjectServiceUpdate:
     def test_unique_fields_error(self, project):
         """Project with provided fields already exist."""
         ProjectFactory(title='another_title', code='another_code')
-        with pytest.raises(ProjectService.UniqueFieldsError):
+        with pytest.raises(ProjectService.ProjectAlreadyExist):
             ProjectService.update(
                 project_id=project.id,
                 title='another_title',

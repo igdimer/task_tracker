@@ -124,7 +124,7 @@ class TestUserUpdateApi:
 
     def test_unique_email_error(self, authorized_client, mock_update):
         """User with provided email already exists."""
-        mock_update.side_effect = UserService.UniqueEmailError()
+        mock_update.side_effect = UserService.UserAlreadyExist()
 
         response = authorized_client.patch(
             reverse('users:update', args=[1]),

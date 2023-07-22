@@ -27,7 +27,7 @@ class ReleaseFactory(factory.django.DjangoModelFactory):
 
     version = factory.Sequence(lambda i: f'0.{i + 1}.0')
     description = 'New Release'
-    release_date = datetime.datetime(2024, 1, 1)
+    release_date = datetime.date(2024, 1, 1)
     status = 'unreleased'
     project = factory.SubFactory(ProjectFactory)
 

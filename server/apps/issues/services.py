@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import transaction
 from django.db.utils import IntegrityError
 
@@ -12,7 +14,7 @@ class ProjectService:
     class ProjectNotFoundError(BaseServiceError):
         """Project does not exist."""
 
-    class UniqueFieldsError(BaseServiceError):
+    class ProjectAlreadyExist(BaseServiceError):
         """Project with some of provided fields already exists."""
 
     @classmethod
@@ -32,7 +34,7 @@ class ProjectService:
             with transaction.atomic():
                 Project.objects.create(title=title, code=code, description=description)
         except IntegrityError as exc:
-            raise cls.UniqueFieldsError() from exc
+            raise cls.ProjectAlreadyExist() from exc
 
     @classmethod
     def update(cls, project_id: int, **kwargs) -> None:
@@ -46,7 +48,7 @@ class ProjectService:
         try:
             project.save()
         except IntegrityError as exc:
-            raise cls.UniqueFieldsError() from exc
+            raise cls.ProjectAlreadyExist() from exc
 
     @classmethod
     def get_by_id(cls, project_id: int) -> dict[str, str | list[dict[str, str | int | None]]]:
@@ -73,3 +75,69 @@ class ProjectService:
             'description': project.description,
             'issues': issues_data,
         }
+
+
+class ReleaseService:
+    """Service for working with releases."""
+
+    class ReleaseNotFoundError(BaseServiceError):
+        """Project does not exist."""
+
+    class ReleaseAlreadyExist(BaseServiceError):
+        """Release already exists."""
+
+    @classmethod
+    def _get_or_error(cls, release_id: int):
+        """Get release or raise exception."""
+        try:
+            release = Release.objects.get(id=release_id)
+        except Release.DoesNotExist:
+            raise cls.ReleaseNotFoundError()
+
+        return release
+
+    @classmethod
+    def create(
+        cls,
+        project_id: int,
+        version: str,
+        description: str,
+        release_date: datetime.date | None = None,
+    ) -> None:
+        """Create release."""
+        project = ProjectService.get_or_error(project_id=project_id)
+
+        try:
+            Release.objects.create(
+                project=project,
+                version=version,
+                description=description,
+                release_date=release_date,
+            )
+        except IntegrityError as exc:
+            raise cls.ReleaseAlreadyExist() from exc
+
+    @classmethod
+    def get_by_id(cls, release_id: int) -> dict[str, dict[str, str | datetime.date]]:
+        """Get release by id."""
+        release = cls._get_or_error(release_id=release_id)
+        return {
+            'version': release.version,
+            'description': release.description,
+            'release_date': release.release_date,
+            'status': release.status,
+        }
+
+    @classmethod
+    def update(cls, release_id: int, **kwargs) -> None:
+        """Edit existing release."""
+        release = cls._get_or_error(release_id=release_id)
+
+        for key, value in kwargs.items():
+            if value is not None:
+                setattr(release, key, value)
+
+        try:
+            release.save()
+        except IntegrityError as exc:
+            raise cls.ReleaseAlreadyExist() from exc
