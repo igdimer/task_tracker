@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from server.apps.issues.services import ProjectService, ReleaseService
+from server.apps.issues.services import IssueService, ProjectService, ReleaseService
 from server.apps.users.services import UserService
 
 
@@ -144,6 +144,297 @@ class TestIssueCreateApi:
         mock_create.side_effect = Exception()
         response = authorized_client.post(
             reverse('issues:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestIssueDetailApi:
+    """Testing IssueDetailApi."""
+
+    @pytest.fixture()
+    def mock_get_by_id(self):
+        """Mock fixture method get_by_id of IssueService."""
+        with mock.patch('server.apps.issues.services.IssueService.get_by_id') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_get_by_id):
+        """Success response."""
+        mock_get_by_id.return_value = {
+            'title': 'issue_title',
+            'code': 'issue_code',
+            'description': 'issue_description',
+            'estimated_time': datetime.timedelta(hours=3),
+            'logged_time': datetime.timedelta(hours=1),
+            'remaining_time': datetime.timedelta(hours=2),
+            'author': 1,
+            'assignee': 2,
+            'project': 'issue_project_code',
+            'release': 'version',
+        }
+        response = authorized_client.get(reverse('issues:detail', args=[999]))
+
+        assert response.status_code == 200
+        assert response.json() == {
+            'title': 'issue_title',
+            'code': 'issue_code',
+            'description': 'issue_description',
+            'estimated_time': '03:00:00',
+            'logged_time': '01:00:00',
+            'remaining_time': '02:00:00',
+            'author': 1,
+            'assignee': 2,
+            'project': 'issue_project_code',
+            'release': 'version',
+        }
+
+    def test_issue_not_found(self, authorized_client, mock_get_by_id):
+        """Issue does not exist."""
+        mock_get_by_id.side_effect = IssueService.IssueNotFoundError()
+        response = authorized_client.get(reverse('issues:detail', args=[999]))
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.get(reverse('issues:detail', args=[999]))
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.post(reverse('issues:detail', args=[999]))
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "POST" not allowed.',
+        }
+
+    def test_internal_error(self, authorized_client, mock_get_by_id):
+        """Internal server error."""
+        mock_get_by_id.side_effect = Exception()
+        response = authorized_client.get(reverse('issues:detail', args=[999]))
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestIssueListApi:
+    """Testing IssueListApi."""
+
+    @pytest.fixture()
+    def mock_get_list(self):
+        """Mock fixture method get_by_id of IssueListApi."""
+        with mock.patch('server.apps.issues.services.IssueService.get_list') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_get_list):
+        """Success response."""
+        mock_get_list.return_value = [{
+            'title': 'issue_title',
+            'code': 'issue_code',
+            'description': 'issue_description',
+            'estimated_time': datetime.timedelta(hours=3),
+            'logged_time': datetime.timedelta(hours=1),
+            'remaining_time': datetime.timedelta(hours=2),
+            'author': 1,
+            'assignee': 2,
+            'project': 'issue_project_code',
+            'release': 'version',
+        }]
+        response = authorized_client.get(reverse('issues:list'))
+
+        assert response.status_code == 200
+        assert response.json() == [{
+            'title': 'issue_title',
+            'code': 'issue_code',
+            'description': 'issue_description',
+            'estimated_time': '03:00:00',
+            'logged_time': '01:00:00',
+            'remaining_time': '02:00:00',
+            'author': 1,
+            'assignee': 2,
+            'project': 'issue_project_code',
+            'release': 'version',
+        }]
+
+    def test_empty_issues_list(self, authorized_client, mock_get_list):
+        """Issue does not exist."""
+        mock_get_list.return_value = []
+        response = authorized_client.get(reverse('issues:list'))
+
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.get(reverse('issues:list'))
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.post(reverse('issues:list'))
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "POST" not allowed.',
+        }
+
+    def test_internal_error(self, authorized_client, mock_get_list):
+        """Internal server error."""
+        mock_get_list.side_effect = Exception()
+        response = authorized_client.get(reverse('issues:list'))
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestIssueUpdateApi:
+    """Testing IssueUpdateApi."""
+
+    default_payload = {
+        'title': 'test_title',
+        'description': 'test_description',
+        'estimated_time': '02:00:00',
+        'logged_time': '00:30:00',
+        'status': 'resolved',
+        'assignee_id': 2,
+        'release_id': 5,
+
+    }
+
+    @pytest.fixture()
+    def mock_update(self):
+        """Mock fixture method update of IssueService."""
+        with mock.patch('server.apps.issues.services.IssueService.update') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_update):
+        """Success response."""
+        response = authorized_client.patch(
+            reverse('issues:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
+        mock_update.assert_called_with(
+            issue_id=999,
+            title='test_title',
+            description='test_description',
+            release_id=5,
+            assignee_id=2,
+            estimated_time=datetime.timedelta(hours=2),
+            logged_time=datetime.timedelta(minutes=30),
+            status='resolved',
+        )
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.post(
+            reverse('issues:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.get(
+            reverse('issues:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "GET" not allowed.',
+        }
+
+    def test_incorrect_parameters(self, authorized_client):
+        """Incorrect response parameters."""
+        payload = {
+            'wrong_key': 'value',
+        }
+        response = authorized_client.patch(
+            reverse('issues:update', args=[999]),
+            payload,
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            'detail': {
+                'non_field_errors': ['No necessary fields were passed.'],
+            },
+        }
+
+    @pytest.mark.parametrize('exc_class', [
+        IssueService.IssueNotFoundError,
+        UserService.UserNotFoundError,
+        ReleaseService.ReleaseNotFoundError,
+    ])
+    def test_not_found(self, authorized_client, mock_update, exc_class):
+        """Issue, user or release not found."""
+        mock_update.side_effect = exc_class()
+        response = authorized_client.patch(
+            reverse('issues:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_provided_null_release_id(self, authorized_client, mock_update):
+        """Provided release_id is null."""
+        payload = {'release_id': None}
+        response = authorized_client.patch(
+            reverse('issues:update', args=[999]),
+            payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        mock_update.assert_called_with(issue_id=999, release_id=None)
+
+    def test_internal_error(self, authorized_client, mock_update):
+        """Internal server error."""
+        mock_update.side_effect = Exception()
+        response = authorized_client.patch(
+            reverse('issues:update', args=[999]),
             self.default_payload,
             format='json',
         )

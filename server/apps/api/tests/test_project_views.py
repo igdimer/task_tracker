@@ -149,7 +149,21 @@ class TestProjectUpdateApi:
             description='test_description',
         )
 
-    def test_unique_fields_error(self, mock_update, authorized_client):
+    def test_project_not_found(self, mock_update, authorized_client):
+        """Project not found."""
+        mock_update.side_effect = ProjectService.ProjectNotFoundError()
+        response = authorized_client.patch(
+            reverse('projects:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_project_already_exist(self, mock_update, authorized_client):
         """Project with provided fields already exists."""
         mock_update.side_effect = ProjectService.ProjectAlreadyExist()
         response = authorized_client.patch(

@@ -20,7 +20,6 @@ class UserDetailApi(APIView):
         email = serializers.EmailField()
         first_name = serializers.CharField()
         last_name = serializers.CharField()
-        is_admin = serializers.BooleanField()
         issues = serializers.ListField(
             child=inline_serializer(fields={
                 'code': serializers.CharField(),

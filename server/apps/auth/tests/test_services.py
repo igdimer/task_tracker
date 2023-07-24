@@ -2,7 +2,6 @@ from unittest import mock
 
 import jwt
 import pytest
-from django.conf import settings
 
 from server.apps.users.models import User
 from server.apps.users.tests.factories import UserFactory
@@ -19,8 +18,8 @@ class TestAuthServiceSignup:
     last_name = 'Osbourne'
     password = 'fake_password'  # noqa: S105
 
-    def test_usual_user(self):
-        """Signup of non-admin user."""
+    def test_success(self):
+        """Signup user."""
         assert User.objects.all().count() == 0
 
         result = AuthService.signup(
@@ -35,41 +34,7 @@ class TestAuthServiceSignup:
         assert user.first_name == 'Ozzy'
         assert user.last_name == 'Osbourne'
         assert user.password == AuthService._hash_password(self.password, self.email)
-        assert user.is_admin is False
         assert result == {'email': self.email}
-
-    def test_admin_user(self):
-        """Signup of admin user."""
-        assert User.objects.all().count() == 0
-
-        result = AuthService.signup(
-            email=self.email,
-            first_name=self.first_name,
-            last_name=self.last_name,
-            password=self.password,
-            secret=settings.AUTH_SECRET,
-        )
-        user = User.objects.get(email=self.email)
-
-        assert User.objects.all().count() == 1
-        assert user.first_name == 'Ozzy'
-        assert user.last_name == 'Osbourne'
-        assert user.password == AuthService._hash_password(self.password, self.email)
-        assert user.is_admin is True
-        assert result == {'email': self.email}
-
-    def test_incorrect_admin_secret(self):
-        """Incorrect secret for creating admin was provided."""
-        with pytest.raises(AuthService.InvalidAuthSecretError):
-            AuthService.signup(  # noqa: S106
-                email=self.email,
-                first_name=self.first_name,
-                last_name=self.last_name,
-                password=self.password,
-                secret='incorrect_secret',
-            )
-
-        assert User.objects.all().count() == 0
 
     def test_user_already_exist(self):
         """User with provided email already exists."""

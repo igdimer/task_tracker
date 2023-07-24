@@ -94,5 +94,47 @@ REST_FRAMEWORK = {
     ),
 }
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[%(asctime)s %(levelname)s] %(name)s: %(message)s',
+        },
+        'command': {
+            'format': '[%(asctime)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+        'command': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'command',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'command': {
+            'handlers': ['command'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'level': 'DEBUG',
+        },
+    },
+}
+
 AUTH_SECRET = env.str('AUTH_SECRET')
 JWT_TOKEN_SECRET = env.str('JWT_TOKEN_SECRET')

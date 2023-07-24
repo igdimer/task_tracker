@@ -18,7 +18,7 @@ class UserService:
         """User with provided email already exists."""
 
     @classmethod
-    def get_user_by_id(cls, user_id: int) -> User:
+    def get_or_error(cls, user_id: int) -> User:
         """Get user by id or raise exception."""
         try:
             user = User.objects.get(id=user_id)
@@ -38,9 +38,9 @@ class UserService:
         return user
 
     @classmethod
-    def get_by_id(cls, user_id: int) -> dict[str, str | list[dict[str, str | None]] | bool]:
+    def get_by_id(cls, user_id: int) -> dict[str, str | list[dict[str, str | None]]]:
         """Get user by id."""
-        user = cls.get_user_by_id(user_id)
+        user = cls.get_or_error(user_id)
 
         issues = Issue.objects.filter(assignee=user).select_related('release')
 
@@ -57,18 +57,16 @@ class UserService:
             'email': user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,
-            'is_admin': user.is_admin,
             'issues': issues_data,
         }
 
     @classmethod
     def update(cls, user_id: int, **kwargs) -> None:
         """Update existing user."""
-        user = cls.get_user_by_id(user_id)
+        user = cls.get_or_error(user_id)
 
         for key, value in kwargs.items():
-            if value is not None:
-                setattr(user, key, value)
+            setattr(user, key, value)
 
         try:
             user.save()
@@ -79,11 +77,11 @@ class UserService:
     def get_assigned_issues(
         cls,
         user: User,
-    ) -> dict[str, list[dict[str, str | datetime.timedelta]]]:
+    ) -> dict[str, list[dict[str, str | datetime.timedelta | None]]]:
         """Get issues assigned to authenticated user."""
-        issues = user.my_issues.all().select_related('release')  # type: ignore[attr-defined]
+        issues = user.my_issues.all().select_related('release')
 
-        issue_data = []
+        issue_data: list[dict[str, str | datetime.timedelta | None]] = []
         for issue in issues:
             issue_data.append({
                 'title': issue.title,

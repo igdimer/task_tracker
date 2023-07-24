@@ -2,7 +2,7 @@ import pytest
 
 from server.apps.users.tests.factories import UserFactory
 
-from .factories import ProjectFactory, ReleaseFactory
+from .factories import IssueFactory, ProjectFactory, ReleaseFactory
 
 
 @pytest.fixture()
@@ -27,3 +27,9 @@ def user():
 def author():
     """User fixtures."""
     return UserFactory(email='author@mail.com')
+
+
+@pytest.fixture()
+def issue(user, author, project):
+    """User fixtures."""
+    return IssueFactory(author=author, assignee=user, project=project, release=None)

@@ -7,7 +7,10 @@ from server.apps.core.exceptions import BaseServiceError
 from server.apps.users.models import User
 from server.apps.users.services import UserService
 
+from .enums import IssueStatusEnum
 from .models import Comment, Issue, Project, Release  # noqa
+
+IssueType = dict[str, str | int | datetime.timedelta | None | IssueStatusEnum]
 
 
 class ProjectService:
@@ -44,8 +47,7 @@ class ProjectService:
         project = cls.get_or_error(project_id)
 
         for key, value in kwargs.items():
-            if value is not None:
-                setattr(project, key, value)
+            setattr(project, key, value)
 
         try:
             project.save()
@@ -130,8 +132,7 @@ class ReleaseService:
         release = cls.get_or_error(release_id=release_id)
 
         for key, value in kwargs.items():
-            if value is not None:
-                setattr(release, key, value)
+            setattr(release, key, value)
 
         try:
             release.save()
@@ -146,19 +147,25 @@ class IssueService:
         """Issue does not exist."""
 
     @classmethod
-    def _get_or_error(cls, issue_id: int) -> Issue:
-        """Get issue or raise exception."""
+    def get_by_id(cls, issue_id: int) -> IssueType:
+        """Get issue by id."""
         try:
-            issue = Issue.objects.get(id=issue_id)
+            issue = Issue.objects.select_related('project', 'release').get(id=issue_id)
         except Issue.DoesNotExist:
             raise cls.IssueNotFoundError()
 
-        return issue
-
-    @classmethod
-    def get_by_id(cls, issue_id: int) -> Issue:
-        """Get issue by id."""
-        return cls._get_or_error(issue_id)
+        return {
+            'title': issue.title,
+            'code': issue.code,
+            'description': issue.description,
+            'estimated_time': issue.estimated_time,
+            'logged_time': issue.logged_time,
+            'remaining_time': issue.remaining_time,
+            'author': issue.author_id,
+            'assignee': issue.assignee_id,
+            'project': issue.project.code,
+            'release': issue.release.version if issue.release else None,
+        }
 
     @classmethod
     def create(
@@ -173,7 +180,7 @@ class IssueService:
     ):
         """Create issue."""
         project = ProjectService.get_or_error(project_id=project_id)
-        assignee = UserService.get_user_by_id(user_id=assignee_id)
+        assignee = UserService.get_or_error(user_id=assignee_id)
         if release_id is not None:
             ReleaseService.get_or_error(release_id=release_id)
 
@@ -186,3 +193,52 @@ class IssueService:
             description=description,
             estimated_time=estimated_time,
         )
+
+    @classmethod
+    def get_list(cls) -> list[IssueType]:
+        """Get issues list."""
+        issues = Issue.objects.all().select_related('project', 'release')
+
+        issues_data: list[IssueType] = []
+        for issue in issues:
+            issues_data.append({
+                'title': issue.title,
+                'code': issue.code,
+                'description': issue.description,
+                'estimated_time': issue.estimated_time,
+                'logged_time': issue.logged_time,
+                'remaining_time': issue.remaining_time,
+                'author': issue.author_id,
+                'assignee': issue.assignee_id,
+                'project': issue.project.code,
+                'release': issue.release.version if issue.release else None,
+            })
+
+        return issues_data
+
+    @classmethod
+    def update(cls, issue_id: int, **kwargs) -> None:
+        """Edit existing issue."""
+        try:
+            issue = Issue.objects.get(id=issue_id)
+        except Issue.DoesNotExist:
+            raise cls.IssueNotFoundError()
+
+        if 'release_id' in kwargs:
+            release_id = kwargs['release_id']
+            if release_id is not None:
+                ReleaseService.get_or_error(release_id)
+
+        assignee_id = kwargs.pop('assignee_id', None)
+        if assignee_id is not None:
+            assignee = UserService.get_or_error(assignee_id)
+            issue.assignee = assignee
+
+        logged_time = kwargs.pop('logged_time', None)
+        if logged_time is not None:
+            issue.logged_time += logged_time
+
+        for key, value in kwargs.items():
+            setattr(issue, key, value)
+
+        issue.save()

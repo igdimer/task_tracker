@@ -48,33 +48,6 @@ class TestSignUpApi:
             password='fake_password',
         )
 
-    def test_success_response_with_admin_secret(self, mock_signup):
-        """Check success response with provided secret."""
-        mock_signup.return_value = {'email': self.email}
-        payload = {
-            'email': self.email,
-            'first_name': self.first_name,
-            'last_name': self.last_name,
-            'password': 'fake_password',
-            'secret': 'fake_secret',
-        }
-
-        response = self.client.post(
-            reverse('auth:signup'),
-            payload,
-            format='json',
-        )
-
-        assert response.status_code == 200
-        assert response.json() == {'email': self.email}
-        mock_signup.assert_called_with(  # noqa: S106
-            email=self.email,
-            first_name=self.first_name,
-            last_name=self.last_name,
-            password='fake_password',
-            secret='fake_secret',
-        )
-
     def test_user_already_exist(self, mock_signup):
         """User already exists."""
         mock_signup.side_effect = AuthService.UserAlreadyExistError()
@@ -87,20 +60,6 @@ class TestSignUpApi:
         assert response.status_code == 409
         assert response.json() == {
             'detail': 'User with specified email already exists in database.',
-        }
-
-    def test_invalid_auth_secret(self, mock_signup):
-        """Invalid secret was provided."""
-        mock_signup.side_effect = AuthService.InvalidAuthSecretError()
-        response = self.client.post(
-            reverse('auth:signup'),
-            self.default_payload,
-            format='json',
-        )
-
-        assert response.status_code == 400
-        assert response.json() == {
-            'detail': 'Incorrect data to set user as admin.',
         }
 
     def test_method_not_allowed(self):

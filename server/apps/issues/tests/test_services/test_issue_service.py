@@ -2,9 +2,13 @@ import datetime
 
 import pytest
 
+from server.apps.issues.enums import IssueStatusEnum
 from server.apps.issues.models import Issue
 from server.apps.issues.services import IssueService, ProjectService, ReleaseService
 from server.apps.users.services import UserService
+from server.apps.users.tests.factories import UserFactory
+
+from ..factories import IssueFactory, ReleaseFactory
 
 
 @pytest.mark.django_db()
@@ -99,3 +103,213 @@ class TestIssueServiceCreate:
                 estimated_time=datetime.timedelta(hours=4),
             )
         assert Issue.objects.all().count() == 0
+
+
+@pytest.mark.django_db()
+class TestIssueServiceGetById:
+    """Testing method get_by_id of IssueService."""
+
+    def test_success_no_release(self, issue):
+        """Getting issue without release."""
+        result = IssueService.get_by_id(issue.id)
+        assert result == {
+            'title': issue.title,
+            'code': issue.code,
+            'description': issue.description,
+            'estimated_time': issue.estimated_time,
+            'logged_time': issue.logged_time,
+            'remaining_time': issue.remaining_time,
+            'author': issue.author_id,
+            'assignee': issue.assignee_id,
+            'project': issue.project.code,
+            'release': None,
+        }
+
+    def test_success_with_release(self):
+        """Getting issue without release."""
+        issue = IssueFactory()
+        result = IssueService.get_by_id(issue.id)
+        assert result == {
+            'title': issue.title,
+            'code': issue.code,
+            'description': issue.description,
+            'estimated_time': issue.estimated_time,
+            'logged_time': issue.logged_time,
+            'remaining_time': issue.remaining_time,
+            'author': issue.author_id,
+            'assignee': issue.assignee_id,
+            'project': issue.project.code,
+            'release': issue.release.version,
+        }
+
+    def test_no_issue(self):
+        """Issue does not exist."""
+        with pytest.raises(IssueService.IssueNotFoundError):
+            IssueService.get_by_id(999)
+
+
+@pytest.mark.django_db()
+class TestIssueServiceGetList:
+    """Testing method get_list of IssueService."""
+
+    def test_success(self, author):
+        """Getting issues."""
+        user_1 = UserFactory(email='one@mail.com')
+        user_2 = UserFactory(email='two@mail.com')
+        release_1, release_2 = ReleaseFactory(), ReleaseFactory()
+        issue_1 = IssueFactory(
+            title='title_1',
+            assignee=user_1,
+            author=author,
+            project=release_1.project,
+            release=release_1,
+            description='test_text_1',
+            estimated_time=datetime.timedelta(hours=1),
+        )
+        issue_2 = IssueFactory(
+            title='title_2',
+            assignee=user_2,
+            author=author,
+            project=release_2.project,
+            release=release_2,
+            description='test_text_2',
+            estimated_time=datetime.timedelta(hours=2),
+        )
+
+        result = IssueService.get_list()
+        assert result == [
+            {
+                'title': issue_1.title,
+                'code': issue_1.code,
+                'description': issue_1.description,
+                'estimated_time': issue_1.estimated_time,
+                'logged_time': issue_1.logged_time,
+                'remaining_time': issue_1.remaining_time,
+                'author': issue_1.author_id,
+                'assignee': issue_1.assignee_id,
+                'project': issue_1.project.code,
+                'release': issue_1.release.version,
+            },
+            {
+                'title': issue_2.title,
+                'code': issue_2.code,
+                'description': issue_2.description,
+                'estimated_time': issue_2.estimated_time,
+                'logged_time': issue_2.logged_time,
+                'remaining_time': issue_2.remaining_time,
+                'author': issue_2.author_id,
+                'assignee': issue_2.assignee_id,
+                'project': issue_2.project.code,
+                'release': issue_2.release.version,
+            },
+        ]
+
+    def test_success_no_release(self, issue):
+        """Issue has no release."""
+        result = IssueService.get_list()
+        assert result == [
+            {
+                'title': issue.title,
+                'code': issue.code,
+                'description': issue.description,
+                'estimated_time': issue.estimated_time,
+                'logged_time': issue.logged_time,
+                'remaining_time': issue.remaining_time,
+                'author': issue.author_id,
+                'assignee': issue.assignee_id,
+                'project': issue.project.code,
+                'release': None,
+            },
+        ]
+
+    def test_no_issues(self):
+        """Empty list of issues."""
+        assert IssueService.get_list() == []
+
+
+@pytest.mark.django_db()
+class TestIssueServiceUpdate:
+    """Testing method update of IssueService."""
+
+    @pytest.fixture()
+    def new_user(self):
+        """Fixture of new user."""
+        return UserFactory(email='new@mail.com')
+
+    @pytest.fixture()
+    def new_release(self, issue):
+        """Fixture of new release."""
+        return ReleaseFactory(project=issue.project)
+
+    def test_success(self, issue, new_user, new_release):
+        """Success updating."""
+        IssueService.update(
+            issue_id=issue.id,
+            title='new_title',
+            description='new_description',
+            estimated_time=datetime.timedelta(hours=3),
+            logged_time=datetime.timedelta(hours=1),
+            status=IssueStatusEnum.RESOLVED,
+            assignee_id=new_user.id,
+            release_id=new_release.id,
+        )
+        issue.refresh_from_db()
+
+        assert issue.title == 'new_title'
+        assert issue.description == 'new_description'
+        assert issue.estimated_time == datetime.timedelta(hours=3)
+        assert issue.logged_time == datetime.timedelta(hours=1)
+        assert issue.status == IssueStatusEnum.RESOLVED
+        assert issue.assignee == new_user
+        assert issue.release == new_release
+
+    def test_no_release(self, issue, new_user):
+        """Updating with non-existing release."""
+        with pytest.raises(ReleaseService.ReleaseNotFoundError):
+            IssueService.update(
+                issue_id=issue.id,
+                title='new_title',
+                description='new_description',
+                estimated_time=datetime.timedelta(hours=3),
+                logged_time=datetime.timedelta(hours=1),
+                status=IssueStatusEnum.RESOLVED,
+                assignee_id=new_user.id,
+                release_id=999,
+            )
+
+    def test_no_new_user(self, issue, new_release):
+        """Updating with non-existing user."""
+        with pytest.raises(UserService.UserNotFoundError):
+            IssueService.update(
+                issue_id=issue.id,
+                title='new_title',
+                description='new_description',
+                estimated_time=datetime.timedelta(hours=3),
+                logged_time=datetime.timedelta(hours=1),
+                status=IssueStatusEnum.RESOLVED,
+                assignee_id=999,
+                release_id=new_release.id,
+            )
+
+    def test_remove_release(self):
+        """Check removing release from issue."""
+        issue = IssueFactory()
+        assert issue.release
+
+        IssueService.update(issue_id=issue.id, release_id=None)
+        issue.refresh_from_db()
+
+        assert issue.release is None
+
+    def test_issue_not_found(self):
+        """Issue not found."""
+        with pytest.raises(IssueService.IssueNotFoundError):
+            IssueService.update(issue_id=999, title='new_title')
+
+    def test_adding_logged_time(self):
+        """Adding logged time to existing value."""
+        issue = IssueFactory(logged_time=datetime.timedelta(hours=3))
+        IssueService.update(issue_id=issue.id, logged_time=datetime.timedelta(minutes=30))
+        issue.refresh_from_db()
+
+        assert issue.logged_time == datetime.timedelta(hours=3, minutes=30)

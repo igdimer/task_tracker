@@ -9,7 +9,6 @@ class User(BaseModel):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=120)
     last_name = models.CharField(max_length=120)
-    is_admin = models.BooleanField(default=False)
     password = models.CharField(max_length=64)
 
     class Meta:

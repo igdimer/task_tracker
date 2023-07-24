@@ -18,9 +18,6 @@ class AuthService:
     class UserAlreadyExistError(BaseServiceError):
         """User with provided email already exists in database."""
 
-    class InvalidAuthSecretError(BaseServiceError):
-        """Invalid secret was used to set user as admin."""
-
     class InvalidPasswordError(BaseServiceError):
         """Invalid password was provided."""
 
@@ -34,24 +31,15 @@ class AuthService:
         first_name: str,
         last_name: str,
         password: str,
-        secret: str | None = None,
     ) -> dict[str, str]:
         """Sign up in the system."""
-        defaults: dict[str, str | bool] = {
-            'first_name': first_name,
-            'last_name': last_name,
-            'password': cls._hash_password(password, email),
-        }
-
-        if secret is not None:
-            if secret == settings.AUTH_SECRET:
-                defaults.update({'is_admin': True})
-            else:
-                raise cls.InvalidAuthSecretError()
-
         user, created = User.objects.get_or_create(
             email=email,
-            defaults=defaults,
+            defaults={
+                'first_name': first_name,
+                'last_name': last_name,
+                'password': cls._hash_password(password, email),
+            },
         )
         if not created:
             raise cls.UserAlreadyExistError()

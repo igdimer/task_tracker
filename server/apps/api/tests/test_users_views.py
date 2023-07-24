@@ -24,7 +24,6 @@ class TestUserDetailApi:
             'email': user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,
-            'is_admin': user.is_admin,
             'issues': [],
         }
 
@@ -35,7 +34,6 @@ class TestUserDetailApi:
             'email': user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,
-            'is_admin': user.is_admin,
             'issues': [],
         }
 
@@ -137,14 +135,13 @@ class TestUserUpdateApi:
             'detail': 'User with provided email already exists.',
         }
 
-    def test_restricted_attributes_provided(self, authorized_client, mock_update):
-        """Check that fields password and is_admin are not passed to service."""
+    def test_restricted_attribute_provided(self, authorized_client, mock_update):
+        """Check that field password is not passed to service."""
         payload = {
             'email': 'test@email.com',
             'first_name': 'Joe',
             'last_name': 'Black',
             'password': 'hack_password',
-            'is_admin': True,
         }
 
         response = authorized_client.patch(

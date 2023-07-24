@@ -40,7 +40,7 @@ class TokenAuthentication(BaseAuthentication):
         try:
             user = UserService.get_by_email(email=user_email)
         except UserService.UserNotFoundError:
-            raise AuthenticationFailed(detail=f'User {user_email} not found.')
+            raise AuthenticationFailed()
         except Exception as exc:
             logger.exception(exc)
             raise AuthenticationFailed()

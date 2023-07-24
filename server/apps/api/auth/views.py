@@ -11,18 +11,13 @@ from . import exceptions
 
 
 class SignUpApi(APIView):
-    """
-    API for user registration.
-
-    To sign up as admin provide field 'secret' equal AUTH_SECRET constant defined in .env file.
-    """
+    """API for user registration."""
 
     class InputSerializer(serializers.Serializer):
         email = serializers.EmailField()
         first_name = serializers.CharField()
         last_name = serializers.CharField()
         password = serializers.CharField()
-        secret = serializers.CharField(required=False)
 
     class OutputSerializer(serializers.Serializer):
         email = serializers.EmailField()
@@ -35,8 +30,6 @@ class SignUpApi(APIView):
             result = AuthService.signup(**serializer.validated_data)
         except AuthService.UserAlreadyExistError as exc:
             raise exceptions.UserAlreadyExistError() from exc
-        except AuthService.InvalidAuthSecretError as exc:
-            raise exceptions.AdminSetFailError() from exc
 
         data = self.OutputSerializer(result).data
         return Response(data)
