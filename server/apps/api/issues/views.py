@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from server.apps.auth.authentication import TokenAuthentication
-from server.apps.issues.services import IssueService, ProjectService, ReleaseService
+from server.apps.issues.services import (CommentService, IssueService, ProjectService,
+                                         ReleaseService)
 from server.apps.users.services import UserService
 
 
@@ -96,7 +97,7 @@ class IssueUpdateApi(APIView):
     API for updating issues list.
 
     You should use this API for all editing operations with issues: resolving, logging time,
-    reopening, changing assignee, etc. For this provide corresponding fields.
+    reopening, changing assignee, etc. To perform action provide corresponding fields.
 
     For example: to resolve issue and log working time provide field 'logged_time' with necessary
     duration time value and field 'status' with value 'resolved' (see IssueStatusEnum).
@@ -136,3 +137,92 @@ class IssueUpdateApi(APIView):
             raise NotFound() from exc
 
         return Response({})
+
+
+class CommentCreateApi(APIView):
+    """API for creation comments."""
+
+    authentication_classes = [TokenAuthentication]
+
+    class InputSerializer(serializers.Serializer):
+        text = serializers.CharField()
+
+    def post(self, request: Request, issue_id: int) -> Response:   # noqa: D102
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            CommentService.create(
+                author=request.user,
+                issue_id=issue_id,
+                **serializer.validated_data,
+            )
+        except IssueService.IssueNotFoundError as exc:
+            raise NotFound() from exc
+
+        return Response({})
+
+
+class CommentDetailApi(APIView):
+    """API for getting comments."""
+
+    authentication_classes = [TokenAuthentication]
+
+    class OutputSerializer(serializers.Serializer):
+        text = serializers.CharField()
+        author_id = serializers.IntegerField()
+        created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
+
+    def get(self, request: Request, issue_id: int, comment_id: int) -> Response:   # noqa: D102
+        try:
+            comment = CommentService.get_by_id(issue_id=issue_id, comment_id=comment_id)
+        except (IssueService.IssueNotFoundError, CommentService.CommentNotFoundError) as exc:
+            raise NotFound() from exc
+
+        data = self.OutputSerializer(comment).data
+        return Response(data)
+
+
+class CommentUpdateApi(APIView):
+    """API for updating comments."""
+
+    authentication_classes = [TokenAuthentication]
+
+    class InputSerializer(serializers.Serializer):
+        text = serializers.CharField()
+
+    def patch(self, request: Request, issue_id: int, comment_id: int) -> Response:   # noqa: D102
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            CommentService.update(
+                issue_id=issue_id,
+                comment_id=comment_id,
+                **serializer.validated_data,
+            )
+        except (CommentService.CommentNotFoundError, IssueService.IssueNotFoundError) as exc:
+            raise NotFound() from exc
+
+        return Response({})
+
+
+class CommentListApi(APIView):
+    """API for getting comments list."""
+
+    authentication_classes = [TokenAuthentication]
+
+    class OutputSerializer(serializers.Serializer):
+        text = serializers.CharField()
+        author_id = serializers.IntegerField()
+        created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
+
+    def get(self, request: Request, issue_id: int) -> Response:  # noqa: D102
+        try:
+            comments = CommentService.get_list(issue_id=issue_id)
+        except IssueService.IssueNotFoundError as exc:
+            raise NotFound() from exc
+
+        data = self.OutputSerializer(comments, many=True).data
+
+        return Response(data)

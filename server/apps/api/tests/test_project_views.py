@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from server.apps.issues.services import ProjectService, ReleaseService
+from server.apps.issues.tests.factories import ReleaseFactory
 
 
 @pytest.mark.django_db()
@@ -420,20 +421,15 @@ class TestReleaseDetailApi:
 
     def test_success(self, authorized_client, mock_get_by_id):
         """Success response."""
-        mock_get_by_id.return_value = {
-            'version': 'release_version',
-            'description': 'release_description',
-            'release_date': 'release_release_date',
-            'status': 'release_status',
-        }
+        mock_get_by_id.return_value = ReleaseFactory(version='0.1.0')
         response = authorized_client.get(reverse('projects:release_detail', args=[999]))
 
         assert response.status_code == 200
         assert response.json() == {
-            'version': 'release_version',
-            'description': 'release_description',
-            'release_date': 'release_release_date',
-            'status': 'release_status',
+            'version': '0.1.0',
+            'description': 'New Release',
+            'release_date': '2024-01-01',
+            'status': 'unreleased',
         }
         mock_get_by_id.assert_called_with(release_id=999)
 
@@ -524,6 +520,20 @@ class TestReleaseUpdateApi:
         assert response.status_code == 409
         assert response.json() == {
             'detail': 'Project already has release with the same version.',
+        }
+
+    def test_release_not_found(self, authorized_client, mock_update):
+        """Release not found."""
+        mock_update.side_effect = ReleaseService.ReleaseNotFoundError()
+        response = authorized_client.patch(
+            reverse('projects:release_update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
         }
 
     def test_auth_fail(self):

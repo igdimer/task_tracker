@@ -6,8 +6,12 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from server.apps.issues.services import IssueService, ProjectService, ReleaseService
+from server.apps.issues.models import Comment
+from server.apps.issues.services import (CommentService, IssueService, ProjectService,
+                                         ReleaseService)
+from server.apps.issues.tests.factories import CommentFactory, IssueFactory
 from server.apps.users.services import UserService
+from server.apps.users.tests.factories import UserFactory
 
 
 @pytest.mark.django_db()
@@ -438,6 +442,252 @@ class TestIssueUpdateApi:
             self.default_payload,
             format='json',
         )
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestCommentCreateApi:
+    """Testing CommentCreateApi."""
+
+    default_payload = {
+        'text': 'test_comment_text',
+    }
+
+    @pytest.fixture()
+    def mock_create(self):
+        """Mock fixture of method create of CommentService."""
+        with mock.patch('server.apps.issues.services.CommentService.create') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_create, user):
+        """Success response."""
+        response = authorized_client.post(
+            reverse('issues:comments_create', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
+        mock_create.assert_called_with(
+            issue_id=999,
+            author=user,
+            text='test_comment_text',
+        )
+
+    def test_issue_not_found(self, authorized_client, mock_create):
+        """Issue not found."""
+        mock_create.side_effect = IssueService.IssueNotFoundError()
+        response = authorized_client.post(
+            reverse('issues:comments_create', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.post(
+            reverse('issues:comments_create', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.get(
+            reverse('issues:comments_create', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "GET" not allowed.',
+        }
+
+    def test_incorrect_parameters(self, authorized_client):
+        """Incorrect response parameters."""
+        payload = {
+            'wrong_key': 'value',
+        }
+        response = authorized_client.post(
+            reverse('issues:comments_create', args=[999]),
+            payload,
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            'detail': {
+                'text': ['This field is required.'],
+            },
+        }
+
+    def test_internal_error(self, authorized_client, mock_create):
+        """Internal server error."""
+        mock_create.side_effect = Exception()
+        response = authorized_client.post(
+            reverse('issues:comments_create', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestCommentDetailApi:
+    """Testing CommentDetailApi."""
+
+    @pytest.fixture()
+    def mock_get_by_id(self):
+        """Mock fixture method get_by_id of CommentService."""
+        with mock.patch('server.apps.issues.services.CommentService.get_by_id') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_get_by_id):
+        """Success response."""
+        comment = CommentFactory(author=UserFactory(email='author@mail.com'))
+        mock_get_by_id.return_value = comment
+
+        response = authorized_client.get(reverse('issues:comments_detail', args=[99, comment.id]))
+
+        assert response.status_code == 200
+        assert response.json() == {
+            'text': comment.text,
+            'author_id': comment.author_id,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+        }
+
+    @pytest.mark.parametrize('exc_class', [
+        IssueService.IssueNotFoundError,
+        CommentService.CommentNotFoundError,
+    ])
+    def test_not_found(self, authorized_client, exc_class, mock_get_by_id):
+        """Issue or comment not found."""
+        mock_get_by_id.side_effect = exc_class()
+        response = authorized_client.get(reverse('issues:comments_detail', args=[99, 55]))
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.get(reverse('issues:comments_detail', args=[99, 55]))
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.post(reverse('issues:comments_detail', args=[99, 55]))
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "POST" not allowed.',
+        }
+
+    def test_internal_error(self, authorized_client, mock_get_by_id):
+        """Internal server error."""
+        mock_get_by_id.side_effect = Exception()
+        response = authorized_client.get(reverse('issues:comments_detail', args=[99, 55]))
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestCommentListApi:
+    """Testing CommentListApi."""
+
+    @pytest.fixture()
+    def mock_get_list(self):
+        """Mock fixture method get_by_id of CommentService."""
+        with mock.patch('server.apps.issues.services.CommentService.get_list') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_get_list):
+        """Success response."""
+        issue = IssueFactory()
+        comment_1 = CommentFactory(issue=issue, author=issue.assignee)
+        comment_2 = CommentFactory(issue=issue, author=issue.assignee)
+        qs = Comment.objects.all()
+        mock_get_list.return_value = qs
+
+        response = authorized_client.get(reverse('issues:comments_list', args=[999]))
+
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                'text': comment_1.text,
+                'author_id': comment_1.author_id,
+                'created_at': comment_1.created_at.strftime('%Y-%m-%d %H:%M'),
+            },
+            {
+                'text': comment_2.text,
+                'author_id': comment_2.author_id,
+                'created_at': comment_2.created_at.strftime('%Y-%m-%d %H:%M'),
+            },
+        ]
+
+    def test_issue_not_found(self, authorized_client, mock_get_list):
+        """Issue not found."""
+        mock_get_list.side_effect = IssueService.IssueNotFoundError()
+        response = authorized_client.get(reverse('issues:comments_list', args=[999]))
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.get(reverse('issues:comments_list', args=[999]))
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.post(reverse('issues:comments_list', args=[999]))
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "POST" not allowed.',
+        }
+
+    def test_internal_error(self, authorized_client, mock_get_list):
+        """Internal server error."""
+        mock_get_list.side_effect = Exception()
+        response = authorized_client.get(reverse('issues:comments_list', args=[999]))
 
         assert response.status_code == 500
         assert response.json() == {

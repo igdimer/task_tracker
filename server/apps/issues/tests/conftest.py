@@ -2,7 +2,7 @@ import pytest
 
 from server.apps.users.tests.factories import UserFactory
 
-from .factories import IssueFactory, ProjectFactory, ReleaseFactory
+from .factories import CommentFactory, IssueFactory, ProjectFactory, ReleaseFactory
 
 
 @pytest.fixture()
@@ -19,17 +19,23 @@ def release(project):
 
 @pytest.fixture()
 def user():
-    """User fixtures."""
+    """User fixture."""
     return UserFactory(email='user@mail.com')
 
 
 @pytest.fixture()
 def author():
-    """User fixtures."""
+    """User fixture."""
     return UserFactory(email='author@mail.com')
 
 
 @pytest.fixture()
 def issue(user, author, project):
-    """User fixtures."""
+    """User fixture."""
     return IssueFactory(author=author, assignee=user, project=project, release=None)
+
+
+@pytest.fixture()
+def comment(issue, user):
+    """Comment fixture."""
+    return CommentFactory(author=user, issue=issue)

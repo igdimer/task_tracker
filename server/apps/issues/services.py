@@ -1,6 +1,7 @@
 import datetime
 
 from django.db import transaction
+from django.db.models.query import QuerySet
 from django.db.utils import IntegrityError
 
 from server.apps.core.exceptions import BaseServiceError
@@ -8,7 +9,7 @@ from server.apps.users.models import User
 from server.apps.users.services import UserService
 
 from .enums import IssueStatusEnum
-from .models import Comment, Issue, Project, Release  # noqa
+from .models import Comment, Issue, Project, Release
 
 IssueType = dict[str, str | int | datetime.timedelta | None | IssueStatusEnum]
 
@@ -147,6 +148,16 @@ class IssueService:
         """Issue does not exist."""
 
     @classmethod
+    def get_or_error(cls, issue_id: int) -> Issue:
+        """Get issue or raise exception."""
+        try:
+            issue = Issue.objects.get(id=issue_id)
+        except Issue.DoesNotExist:
+            raise cls.IssueNotFoundError()
+
+        return issue
+
+    @classmethod
     def get_by_id(cls, issue_id: int) -> IssueType:
         """Get issue by id."""
         try:
@@ -219,10 +230,7 @@ class IssueService:
     @classmethod
     def update(cls, issue_id: int, **kwargs) -> None:
         """Edit existing issue."""
-        try:
-            issue = Issue.objects.get(id=issue_id)
-        except Issue.DoesNotExist:
-            raise cls.IssueNotFoundError()
+        issue = cls.get_or_error(issue_id)
 
         if 'release_id' in kwargs:
             release_id = kwargs['release_id']
@@ -242,3 +250,46 @@ class IssueService:
             setattr(issue, key, value)
 
         issue.save()
+
+
+class CommentService:
+    """Service for working with comments."""
+
+    class CommentNotFoundError(BaseServiceError):
+        """Comment was not found."""
+
+    @classmethod
+    def create(cls, issue_id: int, author: User, text: str) -> None:
+        """Create comment for issue."""
+        issue = IssueService.get_or_error(issue_id)
+
+        Comment.objects.create(
+            author=author,
+            issue=issue,
+            text=text,
+        )
+
+    @classmethod
+    def get_by_id(cls, issue_id: int, comment_id: int):
+        """Get comment by id."""
+        issue = IssueService.get_or_error(issue_id)
+
+        try:
+            comment = Comment.objects.get(issue=issue, id=comment_id)
+        except Comment.DoesNotExist:
+            raise cls.CommentNotFoundError()
+
+        return comment
+
+    @classmethod
+    def update(cls, issue_id: int, comment_id: int, text: str) -> None:
+        """Update existing comment."""
+        comment = cls.get_by_id(issue_id=issue_id, comment_id=comment_id)
+        comment.text = text
+        comment.save()
+
+    @classmethod
+    def get_list(cls, issue_id: int) -> QuerySet[Comment]:
+        """Get comments list of issue."""
+        issue = IssueService.get_or_error(issue_id=issue_id)
+        return Comment.objects.filter(issue=issue)

@@ -5,7 +5,7 @@ import factory
 from server.apps.users.tests.factories import UserFactory
 
 from ..enums import IssueStatusEnum
-from ..models import Issue, Project, Release
+from ..models import Comment, Issue, Project, Release
 
 
 class ProjectFactory(factory.django.DjangoModelFactory):
@@ -46,3 +46,14 @@ class IssueFactory(factory.django.DjangoModelFactory):
     assignee = factory.SubFactory(UserFactory, email='assignee@email.com')
     project = factory.SelfAttribute('release.project')
     release = factory.SubFactory(ReleaseFactory)
+
+
+class CommentFactory(factory.django.DjangoModelFactory):
+    """Comment factory."""
+
+    class Meta:
+        model = Comment
+
+    text = 'test_text'
+    author = factory.SubFactory(UserFactory)
+    issue = factory.SubFactory(IssueFactory)
