@@ -16,3 +16,5 @@ RUN pip install --upgrade pip setuptools wheel \
     && pip install -r requirements.txt -r requirements.dev.txt
 
 COPY . .
+
+RUN python manage.py migrate
