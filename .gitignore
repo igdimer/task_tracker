@@ -335,5 +335,3 @@ what_is_folder/media/
 .envs/*
 
 .idea/
-
-docker-compose.override.yml
