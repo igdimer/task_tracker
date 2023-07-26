@@ -1,0 +1,1929 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Task Tracker",
+    "description": "The prototype of task tracker",
+    "version": "1.0.1"
+  },
+  "servers": [
+    {
+      "url": "http://0.0.0.0:8000/api"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "summary": "Registration new users",
+        "description": "Takes parameters: email, first_name, last_name, password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "first_name",
+                  "last_name",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "test@mail.com",
+                    "description": "User email"
+                  },
+                  "first_name": {
+                    "type": "string",
+                    "example": "Tony",
+                    "description": "User first name"
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "example": "Iommi",
+                    "description": "User last name"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "secret_password",
+                    "description": "User password"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 ОK - User was created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "example": "test@mail.com"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 - User with provided email already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "User with specified email already exists in database."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "summary": "Login and get JWT tokens",
+        "description": "Takes parameters: email and password. Returns access and refresh tokens, which will be used for Authorization header in requests to API.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "test@mail.com",
+                    "description": "User email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "secret_password",
+                    "description": "User password"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 ОK - Successful login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiYWNjZXNzIiwidXNlcl9lbWFpbCI6ImRpbWFAdHQuY29tIiwiZXhwIjoxNjkwNDQ1MDc1fQ.PzFaEVnffZxAqnwR16QFoLrXl4oelR6y9GAX-Qyu4FI"
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoicmVmcmVzaCIsInVzZXJfZW1haWwiOiJkaW1hQHR0LmNvbSIsImV4cCI6MTY5MDcwNDI3NX0.suT0eweWDve3Es4yMCudvVKQ1scX20wwPbTAq7QPgnQ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "406 - Invalid password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Invalid password was provided."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - User is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/token-refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "security": [],
+        "summary": "Get new tokens by refresh token",
+        "description": "Takes parameter refresh_token and return new access and refresh tokens.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refresh_token"
+                ],
+                "properties": {
+                  "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoicmVmcmVzaCIsInVzZXJfZW1haWwiOiJkaW1hQHR0LmNvbSIsImV4cCI6MTY5MDcwNDI3NX0.suT0eweWDve3Es4yMCudvVKQ1scX20wwPbTAq7QPgnQ",
+                    "description": "Refresh token"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 ОK - Successful request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiYWNjZXNzIiwidXNlcl9lbWFpbCI6ImRpbWFAdHQuY29tIiwiZXhwIjoxNjkwNDQ1MDc1fQ.PzFaEVnffZxAqnwR16QFoLrXl4oelR6y9GAX-Qyu4FI"
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoicmVmcmVzaCIsInVzZXJfZW1haWwiOiJkaW1hQHR0LmNvbSIsImV4cCI6MTY5MDcwNDI3NX0.suT0eweWDve3Es4yMCudvVKQ1scX20wwPbTAq7QPgnQ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "406 - Refreshing failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Attempt to refresh token failed."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - User is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/create": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create project",
+        "description": "Takes parameters: title, code and description.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "code",
+                  "description"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "My project",
+                    "description": "Name of project"
+                  },
+                  "code": {
+                    "type": "string",
+                    "example": "MP",
+                    "description": "Shortcut for project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Features of my project are ...",
+                    "description": "Project description"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Project was successful created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 - Project with provided title or code already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Project with some of provided fields already exists."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get project",
+        "description": "Takes path parameter project_id. Returns information about project.",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 OK.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "example": "My Project"
+                    },
+                    "code": {
+                      "type": "string",
+                      "example": "MP"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "Description of project"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProjectIssueType"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Project is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/update": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Edit project",
+        "description": "Takes path parameter project_id and payload.",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "My project",
+                    "description": "Name of project"
+                  },
+                  "code": {
+                    "type": "string",
+                    "example": "MP",
+                    "description": "Shortcut for project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Features of my project are ...",
+                    "description": "Project description"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Project was successful updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Project is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 - Project with provided title or code already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Project with some of provided fields already exists."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/releases/create": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create release",
+        "description": "Takes path parameter project_id and creates release belonging to this project. Takes body parameters: version, description, status, release_date.",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "version",
+                  "description"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "string",
+                    "example": "1.0.4",
+                    "description": "Release version"
+                  },
+                  "release_date": {
+                    "type": "string",
+                    "example": "2024-01-01",
+                    "description": "Expected release date"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Description of release",
+                    "description": "Description of release"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Release was successful created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Project is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 - Project already has release with the same version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Project with some of provided fields already exists."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/releases/{release_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get release",
+        "description": "Takes path parameter release_id.",
+        "parameters": [
+          {
+            "name": "release_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 - Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string",
+                      "example": "0.4.0",
+                      "description": "Release version"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "Release description",
+                      "description": "Release description"
+                    },
+                    "release_date": {
+                      "type": "string",
+                      "example": "2024-01-01",
+                      "description": "Expected release date"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "unreleased",
+                      "description": "Release status"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Release is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/releases/{release_id}/update": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Edit release",
+        "description": "Takes path parameter release_id and payload.",
+        "parameters": [
+          {
+            "name": "release_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "string",
+                    "example": "1.0.4",
+                    "description": "Release version"
+                  },
+                  "release_date": {
+                    "type": "string",
+                    "example": "2024-01-01",
+                    "description": "Expected release date"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Description of release",
+                    "description": "Description of release"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "released",
+                    "description": "ExpectedDescription of release"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Release was successful updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Release is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 - Project already has release with the same version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Project already has release with the same version."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/": {
+      "get": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Get issues list",
+        "description": "Get issues list.",
+        "responses": {
+          "200": {
+            "description": "200 Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueType"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/create": {
+      "post": {
+        "summary": "Create issue",
+        "tags": [
+          "issues"
+        ],
+        "description": "Takes parameters: project_id, title, description, estimated_time, assignee_id and release_id.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "project_id",
+                  "title",
+                  "description",
+                  "assignee_id"
+                ],
+                "properties": {
+                  "project_id": {
+                    "type": "integer",
+                    "example": 4
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Develop new feature"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Description of issue"
+                  },
+                  "estimated_time": {
+                    "type": "string",
+                    "example": "04:00:00"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "example": 3
+                  },
+                  "release_id": {
+                    "type": "integer",
+                    "example": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Issue was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Release, project or user are not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/{issue_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "tags": [
+          "issues"
+        ],
+        "summary": "Get issue",
+        "description": "Takes path parameter issue_id",
+        "responses": {
+          "200": {
+            "description": "200 Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueType"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Issue is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/{issue_id}/update": {
+      "patch": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Edit issue",
+        "description": " Takes path parameter issue_id and pyaload.\n\n You should use this API for all editing operations with issues: resolving, logging time, reopening, changing assignee, etc. To perform action provide corresponding fields. For example: to resolve issue and log working time provide field 'logged_time' with necessary duration time value and field 'status' with value 'resolved' (see IssueStatusEnum).\n\n Logged time will be added to existing value of issue instance.",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Develop new feature"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Description of issue"
+                  },
+                  "estimated_time": {
+                    "type": "string",
+                    "example": "04:00:00"
+                  },
+                  "logged_time": {
+                    "type": "string",
+                    "example": "04:00:00"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "in progress"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "example": 3
+                  },
+                  "release_id": {
+                    "type": "integer",
+                    "example": 2,
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Issue was updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Issue is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/{issue_id}/comments/": {
+      "get": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Get comments list of issue",
+        "description": "Takes path parameter issue_id.",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentType"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Issue or comment are not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/{issue_id}/comments/create": {
+      "post": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Create comment",
+        "description": "Takes path parameter issue_id and add comment to this issue. Takes body parameter text.",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "example": "Comment text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Comment was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Issue is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/{issue_id}/comments/{comment_id}": {
+      "get": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Get comment",
+        "description": "Takes path parameters: issue_id and comment_id.",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentType"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Issue or comment are not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/issues/{issue_id}/comments/{comment_id}/update": {
+      "patch": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Edit comment",
+        "description": "Takes two path parameters issue_id, comment_id and payload.",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "example": "Comment text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - Comment was updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Issue or comment are not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/users/{user_id}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get user",
+        "description": "Takes path parameter user_id.",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "example": "example@mail.com"
+                    },
+                    "first_name": {
+                      "type": "string",
+                      "example": "Tony"
+                    },
+                    "last_name": {
+                      "type": "string",
+                      "example": "Iommi"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "example": "MP-2"
+                          },
+                          "title": {
+                            "type": "string",
+                            "example": "Develop new feature"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "reopened"
+                          },
+                          "release": {
+                            "type": "string",
+                            "example": "1.4.0",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - User is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}/update": {
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Edit user",
+        "description": "Takes path parameter user_id and payload",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "object",
+                    "example": "example@mail.com"
+                  },
+                  "first_name": {
+                    "type": "object",
+                    "example": "Tony"
+                  },
+                  "last_name": {
+                    "type": "object",
+                    "example": "Iommi"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 - User was updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - User is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/my_issues": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get list issues of user",
+        "description": "Returns list of issues assigned to authenticated user.",
+        "responses": {
+          "200": {
+            "description": "200 Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "example": "MP-4"
+                          },
+                          "title": {
+                            "type": "string",
+                            "example": "Develop new feature"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "open"
+                          },
+                          "estimated_time": {
+                            "type": "string",
+                            "example": "00:30:00"
+                          },
+                          "release": {
+                            "type": "string",
+                            "example": "0.1.0"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "components": {
+    "schemas": {
+      "ProjectIssueType": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "MP-3"
+          },
+          "title": {
+            "type": "string",
+            "example": "Develop new feature"
+          },
+          "status": {
+            "type": "string",
+            "example": "in progress"
+          },
+          "release": {
+            "type": "string",
+            "example": "0.5.0"
+          },
+          "assignee": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "IssueType": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Develop new feature"
+          },
+          "code": {
+            "type": "string",
+            "example": "MP-3"
+          },
+          "description": {
+            "type": "string",
+            "example": "Issue description"
+          },
+          "estimated_time": {
+            "type": "string",
+            "example": "03:00:00"
+          },
+          "logged_time": {
+            "type": "string",
+            "example": "03:00:00"
+          },
+          "remaining_time": {
+            "type": "string",
+            "example": "03:00:00"
+          },
+          "author": {
+            "type": "integer",
+            "example": 1
+          },
+          "assignee": {
+            "type": "integer",
+            "example": 1
+          },
+          "project": {
+            "type": "string",
+            "example": "MP"
+          },
+          "status": {
+            "type": "string",
+            "example": "in progress"
+          },
+          "release": {
+            "type": "string",
+            "example": "0.5.0"
+          }
+        }
+      },
+      "CommentType": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "example": "Comment text"
+          },
+          "author_id": {
+            "type": "integer",
+            "example": 2
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2023-10-12 15:00"
+          }
+        }
+      },
+      "InternalServerError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Internal Server Error."
+          }
+        }
+      },
+      "NotFoundError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Not found."
+          }
+        }
+      },
+      "UnauthorizedError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Incorrect authentication credentials."
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "some message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

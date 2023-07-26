@@ -175,6 +175,7 @@ class IssueService:
             'author': issue.author_id,
             'assignee': issue.assignee_id,
             'project': issue.project.code,
+            'status': issue.status,
             'release': issue.release.version if issue.release else None,
         }
 
@@ -222,6 +223,7 @@ class IssueService:
                 'author': issue.author_id,
                 'assignee': issue.assignee_id,
                 'project': issue.project.code,
+                'status': issue.status,
                 'release': issue.release.version if issue.release else None,
             })
 

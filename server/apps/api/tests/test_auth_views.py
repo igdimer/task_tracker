@@ -160,6 +160,21 @@ class TestLoginApi:
             'detail': 'Not found.',
         }
 
+    def test_incorrect_password(self, mock_login):
+        """Incorrect password."""
+        mock_login.side_effect = AuthService.InvalidPasswordError()
+
+        response = self.client.post(
+            reverse('auth:login'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 406
+        assert response.json() == {
+            'detail': 'Invalid password was provided.',
+        }
+
     def test_method_not_allowed(self):
         """Incorrect HTTP method."""
         response = self.client.get(
@@ -251,6 +266,21 @@ class TestRefreshTokenApi:
         assert response.status_code == 404
         assert response.json() == {
             'detail': 'Not found.',
+        }
+
+    def test_refreshing_error(self, mock_refresh_token):
+        """User with provided email not found."""
+        mock_refresh_token.side_effect = AuthService.InvalidRefreshTokenError()
+
+        response = self.client.post(
+            reverse('auth:token_refresh'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 406
+        assert response.json() == {
+            'detail': 'Attempt to refresh token failed.',
         }
 
     def test_method_not_allowed(self):

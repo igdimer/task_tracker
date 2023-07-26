@@ -339,6 +339,27 @@ class TestReleaseCreateApi:
             description='New_Release',
         )
 
+    def test_create_no_release_date(self, authorized_client, mock_create):
+        """Create with no provided release date."""
+        payload = {
+            'version': '0.1.0',
+            'description': 'New_Release',
+        }
+
+        response = authorized_client.post(
+            reverse('projects:release_create', args=[999]),
+            payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
+        mock_create.assert_called_with(
+            project_id=999,
+            version='0.1.0',
+            description='New_Release',
+        )
+
     def test_project_not_found(self, authorized_client, mock_create):
         """Project was not found."""
         mock_create.side_effect = ProjectService.ProjectNotFoundError()

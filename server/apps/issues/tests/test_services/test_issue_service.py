@@ -122,6 +122,7 @@ class TestIssueServiceGetById:
             'author': issue.author_id,
             'assignee': issue.assignee_id,
             'project': issue.project.code,
+            'status': 'open',
             'release': None,
         }
 
@@ -139,6 +140,7 @@ class TestIssueServiceGetById:
             'author': issue.author_id,
             'assignee': issue.assignee_id,
             'project': issue.project.code,
+            'status': 'open',
             'release': issue.release.version,
         }
 
@@ -188,6 +190,7 @@ class TestIssueServiceGetList:
                 'author': issue_1.author_id,
                 'assignee': issue_1.assignee_id,
                 'project': issue_1.project.code,
+                'status': 'open',
                 'release': issue_1.release.version,
             },
             {
@@ -200,6 +203,7 @@ class TestIssueServiceGetList:
                 'author': issue_2.author_id,
                 'assignee': issue_2.assignee_id,
                 'project': issue_2.project.code,
+                'status': 'open',
                 'release': issue_2.release.version,
             },
         ]
@@ -218,6 +222,7 @@ class TestIssueServiceGetList:
                 'author': issue.author_id,
                 'assignee': issue.assignee_id,
                 'project': issue.project.code,
+                'status': 'open',
                 'release': None,
             },
         ]

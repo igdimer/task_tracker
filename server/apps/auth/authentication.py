@@ -28,7 +28,7 @@ class TokenAuthentication(BaseAuthentication):
                 settings.JWT_TOKEN_SECRET,
                 algorithms=['HS256'],
             )
-        except jwt.ExpiredSignatureError:
+        except jwt.InvalidTokenError:
             raise AuthenticationFailed()
 
         try:

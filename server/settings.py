@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import environ
@@ -40,7 +41,7 @@ ROOT_URLCONF = 'server.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'server/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -51,6 +52,10 @@ TEMPLATES = [
             ],
         },
     },
+]
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'server/static'),
 ]
 
 WSGI_APPLICATION = 'server.wsgi.application'

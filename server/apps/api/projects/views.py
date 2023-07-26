@@ -100,7 +100,7 @@ class ReleaseCreateApi(APIView):
 
     class InputSerializer(serializers.Serializer):
         version = serializers.CharField()
-        release_date = serializers.DateField()
+        release_date = serializers.DateField(required=False)
         description = serializers.CharField()
 
     def post(self, request: Request, project_id: int) -> Response:  # noqa: D102

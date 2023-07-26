@@ -44,7 +44,7 @@ class TestUserServiceGetMethods:
         """Check get_by_id method in case user exists and has issues."""
         author = UserFactory(email='author@mail.com')
         issue_1 = IssueFactory(assignee=user, author=author)
-        issue_2 = IssueFactory(assignee=user, author=author)
+        issue_2 = IssueFactory(assignee=user, author=author, release=None, project=issue_1.project)
         result = UserService.get_by_id(user_id=user.id)
 
         assert result == {
@@ -62,7 +62,7 @@ class TestUserServiceGetMethods:
                     'title': issue_2.title,
                     'code': issue_2.code,
                     'status': issue_2.status,
-                    'release': issue_2.release.version,
+                    'release': None,
                 },
             ],
         }

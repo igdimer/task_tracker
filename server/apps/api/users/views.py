@@ -25,7 +25,7 @@ class UserDetailApi(APIView):
                 'code': serializers.CharField(),
                 'title': serializers.CharField(),
                 'status': serializers.CharField(),
-                'release': serializers.CharField(),
+                'release': serializers.CharField(allow_null=True),
             }),
         )
 

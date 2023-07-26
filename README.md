@@ -30,3 +30,5 @@ Projects have releases. Issues should belong to project and can be connected to 
 ### Launch project
 
 To launch project locally clone repository and run ```docker-compose up``` in the project directory.
+
+After that openapi documentation is available on http://0.0.0.0:8000/docs

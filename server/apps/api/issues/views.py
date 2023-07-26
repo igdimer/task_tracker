@@ -56,6 +56,7 @@ class IssueDetailApi(APIView):
         author = serializers.IntegerField()
         assignee = serializers.IntegerField()
         project = serializers.CharField()
+        status = serializers.CharField()
         release = serializers.CharField(allow_null=True)
 
     def get(self, request: Request, issue_id: int) -> Response:  # noqa: D102
@@ -83,6 +84,7 @@ class IssueListApi(APIView):
         author = serializers.IntegerField()
         assignee = serializers.IntegerField()
         project = serializers.CharField()
+        status = serializers.CharField()
         release = serializers.CharField(allow_null=True)
 
     def get(self, request: Request) -> Response:  # noqa: D102
@@ -94,7 +96,7 @@ class IssueListApi(APIView):
 
 class IssueUpdateApi(APIView):
     """
-    API for updating issues list.
+    API for updating issues.
 
     You should use this API for all editing operations with issues: resolving, logging time,
     reopening, changing assignee, etc. To perform action provide corresponding fields.

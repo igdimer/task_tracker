@@ -9,10 +9,10 @@ class UserAlreadyExistError(CustomApiError):  # noqa: D101
 
 
 class InvalidPasswordError(CustomApiError):  # noqa: D101
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code = status.HTTP_406_NOT_ACCEPTABLE
     default_detail = 'Invalid password was provided.'
 
 
 class RefreshTokenFailError(CustomApiError):  # noqa: D101
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code = status.HTTP_406_NOT_ACCEPTABLE
     default_detail = 'Attempt to refresh token failed.'

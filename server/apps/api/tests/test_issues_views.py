@@ -180,6 +180,7 @@ class TestIssueDetailApi:
             'author': 1,
             'assignee': 2,
             'project': 'issue_project_code',
+            'status': 'open',
             'release': 'version',
         }
         response = authorized_client.get(reverse('issues:detail', args=[999]))
@@ -195,6 +196,7 @@ class TestIssueDetailApi:
             'author': 1,
             'assignee': 2,
             'project': 'issue_project_code',
+            'status': 'open',
             'release': 'version',
         }
 
@@ -260,6 +262,7 @@ class TestIssueListApi:
             'author': 1,
             'assignee': 2,
             'project': 'issue_project_code',
+            'status': 'open',
             'release': 'version',
         }]
         response = authorized_client.get(reverse('issues:list'))
@@ -275,6 +278,7 @@ class TestIssueListApi:
             'author': 1,
             'assignee': 2,
             'project': 'issue_project_code',
+            'status': 'open',
             'release': 'version',
         }]
 
