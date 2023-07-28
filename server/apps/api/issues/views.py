@@ -1,6 +1,6 @@
 import datetime
 
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -39,7 +39,7 @@ class IssueCreateApi(APIView):
         ) as exc:
             raise NotFound() from exc
 
-        return Response({})
+        return Response({}, status=status.HTTP_201_CREATED)
 
 
 class IssueDetailApi(APIView):
@@ -163,7 +163,7 @@ class CommentCreateApi(APIView):
         except IssueService.IssueNotFoundError as exc:
             raise NotFound() from exc
 
-        return Response({})
+        return Response({}, status=status.HTTP_201_CREATED)
 
 
 class CommentDetailApi(APIView):

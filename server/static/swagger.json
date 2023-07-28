@@ -62,8 +62,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 ОK - User was created",
+          "201": {
+            "description": "201 ОK - User was created",
             "content": {
               "application/json": {
                 "schema": {
@@ -356,8 +356,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 - Project was successful created.",
+          "201": {
+            "description": "201 - Project was successful created.",
             "content": {
               "application/json": {
                 "schema": {
@@ -648,8 +648,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 - Release was successful created.",
+          "201": {
+            "description": "201 - Release was successful created.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1005,8 +1005,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 - Issue was created.",
+          "201": {
+            "description": "201 - Issue was created.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1315,8 +1315,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 - Comment was created.",
+          "201": {
+            "description": "201 - Comment was created.",
             "content": {
               "application/json": {
                 "schema": {

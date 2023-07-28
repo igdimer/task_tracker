@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,7 +31,7 @@ class ProjectCreateApi(APIView):
         except ProjectService.ProjectAlreadyExist as exc:
             raise exceptions.ProjectAlreadyExist() from exc
 
-        return Response({})
+        return Response({}, status=status.HTTP_201_CREATED)
 
 
 class ProjectUpdateApi(APIView):
@@ -115,7 +115,7 @@ class ReleaseCreateApi(APIView):
         except ProjectService.ProjectNotFoundError as exc:
             raise NotFound() from exc
 
-        return Response({})
+        return Response({}, status=status.HTTP_201_CREATED)
 
 
 class ReleaseDetailApi(APIView):

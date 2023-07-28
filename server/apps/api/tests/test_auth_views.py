@@ -39,7 +39,7 @@ class TestSignUpApi:
             format='json',
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json() == {'email': self.email}
         mock_signup.assert_called_with(  # noqa: S106
             email=self.email,

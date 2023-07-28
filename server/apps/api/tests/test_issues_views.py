@@ -41,7 +41,7 @@ class TestIssueCreateApi:
             format='json',
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
             project_id=1,
@@ -64,7 +64,7 @@ class TestIssueCreateApi:
             format='json',
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
             project_id=1,
@@ -475,7 +475,7 @@ class TestCommentCreateApi:
             format='json',
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
             issue_id=999,

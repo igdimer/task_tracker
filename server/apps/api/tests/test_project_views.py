@@ -33,7 +33,7 @@ class TestProjectCreateApi:
             format='json',
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
             title='test_title',
@@ -330,7 +330,7 @@ class TestReleaseCreateApi:
             format='json',
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
             project_id=999,
@@ -352,7 +352,7 @@ class TestReleaseCreateApi:
             format='json',
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
             project_id=999,

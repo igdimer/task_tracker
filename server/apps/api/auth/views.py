@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -32,7 +32,7 @@ class SignUpApi(APIView):
             raise exceptions.UserAlreadyExistError() from exc
 
         data = self.OutputSerializer(result).data
-        return Response(data)
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class LoginApi(APIView):
