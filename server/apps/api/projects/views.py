@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from server.apps.auth.authentication import TokenAuthentication
+from server.apps.issues.enums import ReleaseStatusEnum
 from server.apps.issues.services import ProjectService, ReleaseService
 
 from ..utils import inline_serializer
@@ -146,7 +147,7 @@ class ReleaseUpdateApi(APIView):
     class InputSerializer(serializers.Serializer):
         version = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
-        status = serializers.CharField(required=False)
+        status = serializers.ChoiceField(required=False, choices=ReleaseStatusEnum.choices)
         release_date = serializers.DateField(required=False)
 
         def validate(self, attrs):

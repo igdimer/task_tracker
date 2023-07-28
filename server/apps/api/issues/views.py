@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from server.apps.auth.authentication import TokenAuthentication
+from server.apps.issues.enums import IssueStatusEnum
 from server.apps.issues.services import (CommentService, IssueService, ProjectService,
                                          ReleaseService)
 from server.apps.users.services import UserService
@@ -114,7 +115,7 @@ class IssueUpdateApi(APIView):
         description = serializers.CharField(required=False)
         estimated_time = serializers.DurationField(required=False)
         logged_time = serializers.DurationField(required=False)
-        status = serializers.CharField(required=False)
+        status = serializers.ChoiceField(required=False, choices=IssueStatusEnum.choices)
         assignee_id = serializers.IntegerField(required=False)
         release_id = serializers.IntegerField(required=False, allow_null=True)
 
