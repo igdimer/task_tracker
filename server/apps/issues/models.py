@@ -83,9 +83,10 @@ class Issue(BaseModel):
 
     def save(self, *args, **kwargs) -> None:
         """Additionally set field 'number'."""
-        project = self.project
-        issue_count = Issue.objects.filter(project=project).count()
-        self.code = f'{project.code}-{issue_count + 1}'
+        if not self.code:
+            project = self.project
+            issue_count = Issue.objects.filter(project=project).count()
+            self.code = f'{project.code}-{issue_count + 1}'
         super().save(*args, **kwargs)
 
     @property

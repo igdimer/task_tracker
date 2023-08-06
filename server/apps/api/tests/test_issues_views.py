@@ -341,7 +341,7 @@ class TestIssueUpdateApi:
         with mock.patch('server.apps.issues.services.IssueService.update') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_update):
+    def test_success(self, authorized_client, mock_update, user):
         """Success response."""
         response = authorized_client.patch(
             reverse('issues:update', args=[999]),
@@ -352,6 +352,7 @@ class TestIssueUpdateApi:
         assert response.status_code == 200
         assert response.json() == {}
         mock_update.assert_called_with(
+            user=user,
             issue_id=999,
             title='test_title',
             description='test_description',
@@ -426,7 +427,7 @@ class TestIssueUpdateApi:
             'detail': 'Not found.',
         }
 
-    def test_provided_null_release_id(self, authorized_client, mock_update):
+    def test_provided_null_release_id(self, authorized_client, mock_update, user):
         """Provided release_id is null."""
         payload = {'release_id': None}
         response = authorized_client.patch(
@@ -436,7 +437,7 @@ class TestIssueUpdateApi:
         )
 
         assert response.status_code == 200
-        mock_update.assert_called_with(issue_id=999, release_id=None)
+        mock_update.assert_called_with(user=user, issue_id=999, release_id=None)
 
     def test_internal_error(self, authorized_client, mock_update):
         """Internal server error."""

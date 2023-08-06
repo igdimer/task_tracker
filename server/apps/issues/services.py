@@ -1,3 +1,4 @@
+import copy
 import datetime
 
 from django.db import transaction
@@ -10,6 +11,7 @@ from server.apps.users.services import UserService
 
 from .enums import IssueStatusEnum
 from .models import Comment, Issue, Project, Release
+from .tasks import send_notification_task
 
 IssueType = dict[str, str | int | datetime.timedelta | None | IssueStatusEnum]
 
@@ -196,7 +198,7 @@ class IssueService:
         if release_id is not None:
             ReleaseService.get_or_error(release_id=release_id)
 
-        Issue.objects.create(
+        issue = Issue.objects.create(
             project=project,
             release_id=release_id,
             assignee=assignee,
@@ -205,6 +207,14 @@ class IssueService:
             description=description,
             estimated_time=estimated_time,
         )
+
+        if author != assignee:
+            message = f'Issue {issue.code} {issue.title} created'
+            send_notification_task.delay(
+                emails=[assignee.email],
+                subject='New issue',
+                message=message,
+            )
 
     @classmethod
     def get_list(cls) -> list[IssueType]:
@@ -230,9 +240,11 @@ class IssueService:
         return issues_data
 
     @classmethod
-    def update(cls, issue_id: int, **kwargs) -> None:
+    def update(cls, issue_id: int, user: User, **kwargs) -> None:
         """Edit existing issue."""
         issue = cls.get_or_error(issue_id)
+        notified_emails = []
+        updated_fields = copy.copy(kwargs)
 
         if 'release_id' in kwargs:
             release_id = kwargs['release_id']
@@ -241,8 +253,9 @@ class IssueService:
 
         assignee_id = kwargs.pop('assignee_id', None)
         if assignee_id is not None:
-            assignee = UserService.get_or_error(assignee_id)
-            issue.assignee = assignee
+            new_assignee = UserService.get_or_error(assignee_id)
+            notified_emails.append(issue.assignee.email)  # to notify previous assignee
+            issue.assignee = new_assignee
 
         logged_time = kwargs.pop('logged_time', None)
         if logged_time is not None:
@@ -252,6 +265,22 @@ class IssueService:
             setattr(issue, key, value)
 
         issue.save()
+
+        notified_emails = [email for email
+                           in set(notified_emails + [issue.assignee.email, issue.author.email])
+                           if email != user.email]
+
+        if notified_emails:
+            message = f'Issue {issue.code} updated:\n'
+            for key in updated_fields:
+                value = getattr(issue, key)
+                message += f'{key}: {value}\n'
+
+            send_notification_task.delay(
+                emails=notified_emails,
+                subject=f'Issue {issue.code} updated',
+                message=message,
+            )
 
 
 class CommentService:
@@ -270,6 +299,18 @@ class CommentService:
             issue=issue,
             text=text,
         )
+
+        notified_emails = [email for email
+                           in {issue.assignee.email, issue.author.email}
+                           if email != author.email]
+
+        if notified_emails:
+            message = f'Issue {issue.code} was commented'
+            send_notification_task.delay(
+                emails=notified_emails,
+                subject=f'Issue {issue.code} was commented',
+                message=message,
+            )
 
     @classmethod
     def get_by_id(cls, issue_id: int, comment_id: int):

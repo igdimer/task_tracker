@@ -9,8 +9,9 @@ This project is a prototype of task tracker. Functionality ideas were taken from
 - Django Rest Framework 3.14
 - PostgreSQL
 - Docker
+- Celery
 
-Also pytest, isort, flake8, mypy were used for adjusting and testing code.
+Also pytest, isort, flake8, mypy are used for adjusting and testing code.
 
 Approach to building project structure is partly based on [HackSoftware/Django Styleguide](https://github.com/HackSoftware/Django-Styleguide).
 

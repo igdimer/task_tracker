@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from server.apps.users.tests.factories import UserFactory
@@ -39,3 +41,10 @@ def issue(user, author, project):
 def comment(issue, user):
     """Comment fixture."""
     return CommentFactory(author=user, issue=issue)
+
+
+@pytest.fixture()
+def mock_notification_task():
+    """Mock-fixture send_notification_task."""
+    with mock.patch('server.apps.issues.tasks.send_notification_task.delay') as mock_task:
+        yield mock_task

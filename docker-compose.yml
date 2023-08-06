@@ -12,6 +12,13 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
   web:
     build:
       context: .
@@ -20,9 +27,20 @@ services:
       bash -c "python manage.py migrate
       && python manage.py runserver 0.0.0.0:8000"
     depends_on:
+      - redis
       - db
     ports:
       - "8000:8000"
 
+  celery:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: celery --app=server.celery:app worker --loglevel=info --concurrency=1
+    depends_on:
+      - redis
+      - db
+
 volumes:
   pg_data:
+  redis_data:

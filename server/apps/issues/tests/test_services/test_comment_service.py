@@ -29,6 +29,45 @@ class TestCommentServiceCreate:
 
         assert Comment.objects.all().count() == 0
 
+    def test_notification_different_users(self, issue, user, author, mock_notification_task):
+        """Issue author, assignee and commentator are different users."""
+        commentator = UserFactory(email='commentator@mail.com')
+        CommentService.create(issue_id=issue.id, author=commentator, text='test_text')
+
+        kwargs = mock_notification_task.call_args.kwargs
+        emails = kwargs['emails']
+
+        assert kwargs['subject'] == f'Issue {issue.code} was commented'
+        assert len(emails) == 2
+        assert user.email in emails
+        assert author.email in emails
+        assert kwargs['message'] == f'Issue {issue.code} was commented'
+
+    def test_notification_assignee_is_commentator(
+        self,
+        issue,
+        user,
+        author,
+        mock_notification_task,
+    ):
+        """Issue assignee comments issue."""
+        CommentService.create(issue_id=issue.id, author=user, text='test_text')
+
+        kwargs = mock_notification_task.call_args.kwargs
+        emails = kwargs['emails']
+
+        assert kwargs['subject'] == f'Issue {issue.code} was commented'
+        assert len(emails) == 1
+        assert author.email in emails
+        assert kwargs['message'] == f'Issue {issue.code} was commented'
+
+    def test_notification_empty_recipients_list(self, user, mock_notification_task):
+        """Issue author, assignee and commentator is the same user."""
+        issue = IssueFactory(author=user, assignee=user)
+        CommentService.create(issue.id, author=user, text='comment_text')
+
+        mock_notification_task.assert_not_called()
+
 
 @pytest.mark.django_db()
 class TestCommentServiceGetById:

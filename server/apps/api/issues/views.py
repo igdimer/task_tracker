@@ -131,7 +131,7 @@ class IssueUpdateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            IssueService.update(issue_id=issue_id, **serializer.validated_data)
+            IssueService.update(issue_id=issue_id, user=request.user, **serializer.validated_data)
         except (
             IssueService.IssueNotFoundError,
             UserService.UserNotFoundError,

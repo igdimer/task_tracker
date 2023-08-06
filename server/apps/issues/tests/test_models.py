@@ -25,3 +25,25 @@ class TestIssueModel:
         assert issue.release.version == '0.1.0'
         assert issue.logged_time == datetime.timedelta(seconds=0)
         assert issue.code == 'TT-1'
+
+    def test_next_issue(self, project, user, author):
+        """Create the second issue."""
+        release = ReleaseFactory(version='0.1.0')
+        issue_1 = IssueFactory(project=project, release=release, author=author, assignee=user)
+        assert issue_1.code == 'TT-1'
+
+        issue_2 = IssueFactory(project=project, release=release, author=author, assignee=user)
+        assert issue_2.code == 'TT-2'
+
+    def test_updating_not_last_issue(self, project, release, user, author):
+        """Update not last issue."""
+        issue_1 = IssueFactory(project=project, release=release, author=author, assignee=user)
+        assert issue_1.code == 'TT-1'
+
+        issue_2 = IssueFactory(project=project, release=release, author=author, assignee=user)
+        assert issue_2.code == 'TT-2'
+
+        issue_1.title = 'new title'
+        issue_1.save()
+
+        assert issue_1.code == 'TT-1'

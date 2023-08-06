@@ -15,9 +15,10 @@ from ..factories import IssueFactory, ReleaseFactory
 class TestIssueServiceCreate:
     """Testing method create of IssueService."""
 
-    def test_success(self, project, release, user, author):
+    def test_success(self, project, release, user, author, mock_notification_task):
         """Success creation issue."""
         assert Issue.objects.all().count() == 0
+
         IssueService.create(
             project_id=project.id,
             release_id=release.id,
@@ -27,6 +28,7 @@ class TestIssueServiceCreate:
             author=author,
             estimated_time=datetime.timedelta(hours=4),
         )
+
         issue = Issue.objects.get(title='test_title')
 
         assert Issue.objects.all().count() == 1
@@ -38,7 +40,13 @@ class TestIssueServiceCreate:
         assert issue.estimated_time == datetime.timedelta(hours=4)
         assert issue.code == 'TT-1'
 
-    def test_release_none(self, author, user, project, release):
+        mock_notification_task.assert_called_with(
+            emails=[user.email],
+            subject='New issue',
+            message=f'Issue {issue.code} {issue.title} created',
+        )
+
+    def test_release_none(self, author, user, project, release, mock_notification_task):
         """Creation without release."""
         assert Issue.objects.all().count() == 0
         IssueService.create(
@@ -59,6 +67,26 @@ class TestIssueServiceCreate:
         assert issue.assignee == user
         assert issue.estimated_time == datetime.timedelta(hours=4)
         assert issue.code == 'TT-1'
+
+    def test_not_notify_if_author_is_assignee(
+        self,
+        project,
+        release,
+        author,
+        mock_notification_task,
+    ):
+        """Author assigned issue to himself."""
+        IssueService.create(
+            project_id=project.id,
+            release_id=release.id,
+            title='test_title',
+            description='test_text',
+            assignee_id=author.id,
+            author=author,
+            estimated_time=datetime.timedelta(hours=4),
+        )
+
+        mock_notification_task.assert_not_called()
 
     def test_release_not_found(self, user, author, project):
         """Provided release_id does not exist."""
@@ -246,9 +274,10 @@ class TestIssueServiceUpdate:
         """Fixture of new release."""
         return ReleaseFactory(project=issue.project)
 
-    def test_success(self, issue, new_user, new_release):
+    def test_success(self, issue, user, new_user, new_release, mock_notification_task):
         """Success updating."""
         IssueService.update(
+            user=issue.author,
             issue_id=issue.id,
             title='new_title',
             description='new_description',
@@ -268,10 +297,25 @@ class TestIssueServiceUpdate:
         assert issue.assignee == new_user
         assert issue.release == new_release
 
+        kwargs = mock_notification_task.call_args.kwargs
+        emails = kwargs['emails']
+
+        assert kwargs['subject'] == f'Issue {issue.code} updated'
+        assert len(emails) == 2
+        assert user.email in emails
+        assert new_user.email in emails
+        assert kwargs['message'] == (
+            f'Issue {issue.code} updated:\ntitle: {issue.title}\n'
+            f'description: {issue.description}\nestimated_time: {issue.estimated_time}\n'
+            f'logged_time: {issue.logged_time}\nstatus: {issue.status}\n'
+            f'assignee_id: {issue.assignee_id}\nrelease_id: {issue.release_id}\n'
+        )
+
     def test_no_release(self, issue, new_user):
         """Updating with non-existing release."""
         with pytest.raises(ReleaseService.ReleaseNotFoundError):
             IssueService.update(
+                user=issue.author,
                 issue_id=issue.id,
                 title='new_title',
                 description='new_description',
@@ -286,6 +330,7 @@ class TestIssueServiceUpdate:
         """Updating with non-existing user."""
         with pytest.raises(UserService.UserNotFoundError):
             IssueService.update(
+                user=issue.author,
                 issue_id=issue.id,
                 title='new_title',
                 description='new_description',
@@ -301,20 +346,59 @@ class TestIssueServiceUpdate:
         issue = IssueFactory()
         assert issue.release
 
-        IssueService.update(issue_id=issue.id, release_id=None)
+        IssueService.update(user=issue.author, issue_id=issue.id, release_id=None)
         issue.refresh_from_db()
 
         assert issue.release is None
 
-    def test_issue_not_found(self):
+    def test_issue_not_found(self, user):
         """Issue not found."""
         with pytest.raises(IssueService.IssueNotFoundError):
-            IssueService.update(issue_id=999, title='new_title')
+            IssueService.update(user=user, issue_id=999, title='new_title')
 
-    def test_adding_logged_time(self):
+    def test_adding_logged_time(self, user):
         """Adding logged time to existing value."""
         issue = IssueFactory(logged_time=datetime.timedelta(hours=3))
-        IssueService.update(issue_id=issue.id, logged_time=datetime.timedelta(minutes=30))
+        IssueService.update(
+            user=user,
+            issue_id=issue.id,
+            logged_time=datetime.timedelta(minutes=30),
+        )
         issue.refresh_from_db()
 
         assert issue.logged_time == datetime.timedelta(hours=3, minutes=30)
+
+    def test_notification_updating_user_is_author(
+        self,
+        issue,
+        author,
+        user,
+        mock_notification_task,
+    ):
+        """Author updates the issue."""
+        IssueService.update(
+            issue_id=issue.id,
+            user=author,
+            release_id=None,
+        )
+
+        mock_notification_task.assert_called_with(
+            emails=[user.email],
+            subject=f'Issue {issue.code} updated',
+            message=f'Issue {issue.code} updated:\nrelease_id: None\n',
+        )
+
+    def test_notification_updating_user_is_author_and_assignee(
+        self,
+        author,
+        mock_notification_task,
+    ):
+        """Author is assignee and updates the issue (empty recipients list)."""
+        issue = IssueFactory(author=author, assignee=author)
+        IssueService.update(
+            issue_id=issue.id,
+            user=author,
+            release_id=None,
+        )
+
+        mock_notification_task.assert_not_called()
