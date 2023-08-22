@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from server.apps.issues.models import Comment
+from server.apps.issues.models import Comment, Issue
 from server.apps.issues.services import (CommentService, IssueService, ProjectService,
                                          ReleaseService)
 from server.apps.issues.tests.factories import CommentFactory, IssueFactory
@@ -168,36 +168,45 @@ class TestIssueDetailApi:
         with mock.patch('server.apps.issues.services.IssueService.get_by_id') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_get_by_id):
+    def test_success(self, authorized_client, mock_get_by_id, issue):
         """Success response."""
-        mock_get_by_id.return_value = {
-            'title': 'issue_title',
-            'code': 'issue_code',
-            'description': 'issue_description',
-            'estimated_time': datetime.timedelta(hours=3),
-            'logged_time': datetime.timedelta(hours=1),
-            'remaining_time': datetime.timedelta(hours=2),
-            'author': 1,
-            'assignee': 2,
-            'project': 'issue_project_code',
-            'status': 'open',
-            'release': 'version',
-        }
-        response = authorized_client.get(reverse('issues:detail', args=[999]))
+        mock_get_by_id.return_value = issue
+        response = authorized_client.get(reverse('issues:detail', args=[issue.id]))
 
         assert response.status_code == 200
         assert response.json() == {
-            'title': 'issue_title',
-            'code': 'issue_code',
-            'description': 'issue_description',
-            'estimated_time': '03:00:00',
-            'logged_time': '01:00:00',
-            'remaining_time': '02:00:00',
-            'author': 1,
-            'assignee': 2,
-            'project': 'issue_project_code',
+            'title': issue.title,
+            'code': issue.code,
+            'description': issue.description,
+            'estimated_time': '04:00:00',
+            'logged_time': '00:00:00',
+            'remaining_time': '04:00:00',
+            'author': issue.author_id,
+            'assignee': issue.assignee_id,
+            'project': issue.project.code,
             'status': 'open',
-            'release': 'version',
+            'release': issue.release.version,
+        }
+
+    def test_issue_without_release(self, authorized_client, mock_get_by_id):
+        """Get issue which has no release."""
+        issue = IssueFactory(release=None)
+        mock_get_by_id.return_value = issue
+        response = authorized_client.get(reverse('issues:detail', args=[issue.id]))
+
+        assert response.status_code == 200
+        assert response.json() == {
+            'title': issue.title,
+            'code': issue.code,
+            'description': issue.description,
+            'estimated_time': '04:00:00',
+            'logged_time': '00:00:00',
+            'remaining_time': '04:00:00',
+            'author': issue.author_id,
+            'assignee': issue.assignee_id,
+            'project': issue.project.code,
+            'status': 'open',
+            'release': None,
         }
 
     def test_issue_not_found(self, authorized_client, mock_get_by_id):
@@ -250,36 +259,24 @@ class TestIssueListApi:
         with mock.patch('server.apps.issues.services.IssueService.get_list') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_get_list):
+    def test_success(self, authorized_client, mock_get_list, issue):
         """Success response."""
-        mock_get_list.return_value = [{
-            'title': 'issue_title',
-            'code': 'issue_code',
-            'description': 'issue_description',
-            'estimated_time': datetime.timedelta(hours=3),
-            'logged_time': datetime.timedelta(hours=1),
-            'remaining_time': datetime.timedelta(hours=2),
-            'author': 1,
-            'assignee': 2,
-            'project': 'issue_project_code',
-            'status': 'open',
-            'release': 'version',
-        }]
+        mock_get_list.return_value = Issue.objects.all()
         response = authorized_client.get(reverse('issues:list'))
 
         assert response.status_code == 200
         assert response.json() == [{
-            'title': 'issue_title',
-            'code': 'issue_code',
-            'description': 'issue_description',
-            'estimated_time': '03:00:00',
-            'logged_time': '01:00:00',
-            'remaining_time': '02:00:00',
-            'author': 1,
-            'assignee': 2,
-            'project': 'issue_project_code',
+            'title': issue.title,
+            'code': issue.code,
+            'description': issue.description,
+            'estimated_time': '04:00:00',
+            'logged_time': '00:00:00',
+            'remaining_time': '04:00:00',
+            'author': issue.author_id,
+            'assignee': issue.assignee_id,
+            'project': issue.project.code,
             'status': 'open',
-            'release': 'version',
+            'release': issue.release.version,
         }]
 
     def test_empty_issues_list(self, authorized_client, mock_get_list):

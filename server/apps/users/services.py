@@ -1,6 +1,5 @@
-import datetime
-
 from django.db import IntegrityError
+from django.db.models import QuerySet
 
 from server.apps.core.exceptions import BaseServiceError
 from server.apps.issues.models import Issue
@@ -38,26 +37,15 @@ class UserService:
         return user
 
     @classmethod
-    def get_by_id(cls, user_id: int) -> dict[str, str | list[dict[str, str | None]]]:
+    def get_by_id(cls, user_id: int) -> dict[str, str | QuerySet[Issue]]:
         """Get user by id."""
         user = cls.get_or_error(user_id)
-
-        issues = Issue.objects.filter(assignee=user).select_related('release')
-
-        issues_data = []
-        for issue in issues:
-            issues_data.append({
-                'title': issue.title,
-                'code': issue.code,
-                'status': issue.status,
-                'release': issue.release.version if issue.release else None,
-            })
 
         return {
             'email': user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,
-            'issues': issues_data,
+            'issues': user.issues_assigned_to.select_related('release'),
         }
 
     @classmethod
@@ -74,21 +62,6 @@ class UserService:
             raise cls.UserAlreadyExist() from exc
 
     @classmethod
-    def get_assigned_issues(
-        cls,
-        user: User,
-    ) -> dict[str, list[dict[str, str | datetime.timedelta | None]]]:
+    def get_assigned_issues(cls, user: User) -> dict[str, QuerySet[Issue]]:
         """Get issues assigned to authenticated user."""
-        issues = user.my_issues.all().select_related('release')
-
-        issue_data: list[dict[str, str | datetime.timedelta | None]] = []
-        for issue in issues:
-            issue_data.append({
-                'title': issue.title,
-                'code': issue.code,
-                'status': issue.status,
-                'estimated_time': issue.estimated_time,
-                'release': issue.release.version if issue.release else None,
-            })
-
-        return {'issues': issue_data}
+        return {'issues': user.issues_assigned_to.select_related('release')}

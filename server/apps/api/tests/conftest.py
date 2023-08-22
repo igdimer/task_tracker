@@ -1,6 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
+from server.apps.issues.tests.factories import IssueFactory
 from server.apps.users.tests.factories import UserFactory
 
 
@@ -8,6 +9,12 @@ from server.apps.users.tests.factories import UserFactory
 def user():
     """User fixture."""
     return UserFactory()
+
+
+@pytest.fixture()
+def issue():
+    """Issue fixture."""
+    return IssueFactory()
 
 
 @pytest.fixture()

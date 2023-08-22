@@ -1,4 +1,5 @@
 import pytest
+from pytest_django.asserts import assertQuerySetEqual
 
 from server.apps.issues.tests.factories import IssueFactory
 
@@ -28,12 +29,10 @@ class TestUserServiceGetMethods:
         """Check get_by_id method in case user exists."""
         result = UserService.get_by_id(user_id=user.id)
 
-        assert result == {
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'issues': [],
-        }
+        assert result['email'] == user.email
+        assert result['first_name'] == user.first_name
+        assert result['last_name'] == user.last_name
+        assertQuerySetEqual(result['issues'], [])
 
     def test_get_by_id_no_user(self, user):
         """Check get_by_id method in case no required user."""
@@ -47,25 +46,10 @@ class TestUserServiceGetMethods:
         issue_2 = IssueFactory(assignee=user, author=author, release=None, project=issue_1.project)
         result = UserService.get_by_id(user_id=user.id)
 
-        assert result == {
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'issues': [
-                {
-                    'title': issue_1.title,
-                    'code': issue_1.code,
-                    'status': issue_1.status,
-                    'release': issue_1.release.version,
-                },
-                {
-                    'title': issue_2.title,
-                    'code': issue_2.code,
-                    'status': issue_2.status,
-                    'release': None,
-                },
-            ],
-        }
+        assert result['email'] == user.email
+        assert result['first_name'] == user.first_name
+        assert result['last_name'] == user.last_name
+        assertQuerySetEqual(result['issues'], [issue_1, issue_2], ordered=False)
 
 
 @pytest.mark.django_db()
@@ -105,28 +89,12 @@ class TestUserServiceGetAssignedIssues:
 
         result = UserService.get_assigned_issues(user)
 
-        assert result == {
-            'issues': [
-                {
-                    'title': issue_1.title,
-                    'code': issue_1.code,
-                    'status': issue_1.status,
-                    'estimated_time': issue_1.estimated_time,
-                    'release': issue_1.release.version,
-                },
-                {
-                    'title': issue_2.title,
-                    'code': issue_2.code,
-                    'status': issue_2.status,
-                    'estimated_time': issue_2.estimated_time,
-                    'release': issue_2.release.version,
-                },
-            ],
-        }
+        assertQuerySetEqual(result['issues'], [issue_1, issue_2], ordered=False)
 
     def test_user_has_no_issues(self, user):
         """User has no assigned issues."""
-        assert UserService.get_assigned_issues(user) == {'issues': []}
+        result = UserService.get_assigned_issues(user)
+        assertQuerySetEqual(result['issues'], [])
 
     def test_another_user_has_issues(self, user, author):
         """Two users have assigned issues."""
@@ -136,14 +104,4 @@ class TestUserServiceGetAssignedIssues:
 
         result = UserService.get_assigned_issues(user)
 
-        assert result == {
-            'issues': [
-                {
-                    'title': issue_1.title,
-                    'code': issue_1.code,
-                    'status': issue_1.status,
-                    'estimated_time': issue_1.estimated_time,
-                    'release': issue_1.release.version,
-                },
-            ],
-        }
+        assertQuerySetEqual(result['issues'], [issue_1], ordered=False)

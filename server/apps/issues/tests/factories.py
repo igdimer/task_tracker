@@ -13,8 +13,9 @@ class ProjectFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Project
+        django_get_or_create = ('title',)
 
-    title = factory.Sequence(lambda i: f'test_project {i + 1}')
+    title = 'test_project'
     code = factory.Sequence(lambda i: f'TP-{i + 1}')
     description = 'Amazing test project'
 
@@ -44,7 +45,7 @@ class IssueFactory(factory.django.DjangoModelFactory):
     status = IssueStatusEnum.OPEN
     author = factory.SubFactory(UserFactory, email='author@email.com')
     assignee = factory.SubFactory(UserFactory, email='assignee@email.com')
-    project = factory.SelfAttribute('release.project')
+    project = factory.SubFactory(ProjectFactory)
     release = factory.SubFactory(ReleaseFactory)
 
 

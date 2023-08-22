@@ -79,7 +79,7 @@ class ProjectDetailApi(APIView):
                 'code': serializers.CharField(),
                 'title': serializers.CharField(),
                 'status': serializers.CharField(),
-                'release': serializers.CharField(),
+                'release': serializers.CharField(source='get_release_version'),
                 'assignee': serializers.CharField(),
             }),
         )

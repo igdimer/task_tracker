@@ -67,8 +67,12 @@ class Issue(BaseModel):
         choices=IssueStatusEnum.choices,
         default=IssueStatusEnum.OPEN,
     )
-    author = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='reported_issues')
-    assignee = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='my_issues')
+    author = models.ForeignKey(User, on_delete=models.RESTRICT, related_name='issues_reported_by')
+    assignee = models.ForeignKey(
+        User,
+        on_delete=models.RESTRICT,
+        related_name='issues_assigned_to',
+    )
     project = models.ForeignKey(Project, on_delete=models.RESTRICT)
     release = models.ForeignKey(Release, on_delete=models.RESTRICT, null=True, blank=True)
 
@@ -88,6 +92,12 @@ class Issue(BaseModel):
             issue_count = Issue.objects.filter(project=project).count()
             self.code = f'{project.code}-{issue_count + 1}'
         super().save(*args, **kwargs)
+
+    def get_release_version(self):
+        """Get release version or None if no release."""
+        if self.release is not None:
+            return self.release.version
+        return None
 
     @property
     def remaining_time(self) -> datetime.timedelta:

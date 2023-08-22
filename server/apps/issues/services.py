@@ -9,11 +9,8 @@ from server.apps.core.exceptions import BaseServiceError
 from server.apps.users.models import User
 from server.apps.users.services import UserService
 
-from .enums import IssueStatusEnum
 from .models import Comment, Issue, Project, Release
 from .tasks import send_notification_task
-
-IssueType = dict[str, str | int | datetime.timedelta | None | IssueStatusEnum]
 
 
 class ProjectService:
@@ -58,29 +55,15 @@ class ProjectService:
             raise cls.ProjectAlreadyExist() from exc
 
     @classmethod
-    def get_by_id(cls, project_id: int) -> dict[str, str | list[dict[str, str | int | None]]]:
+    def get_by_id(cls, project_id: int) -> dict[str, str | QuerySet[Issue]]:
         """Get project."""
         project = cls.get_or_error(project_id)
-        project_issues = Issue.objects.filter(project=project).select_related(
-            'release',
-            'assignee',
-        )
-
-        issues_data = []
-        for issue in project_issues:
-            issues_data.append({
-                'title': issue.title,
-                'code': issue.code,
-                'status': issue.status,
-                'release': issue.release.version if issue.release else None,
-                'assignee': issue.assignee.id,
-            })
 
         return {
             'title': project.title,
             'code': project.code,
             'description': project.description,
-            'issues': issues_data,
+            'issues': project.issue_set.select_related('release', 'assignee'),
         }
 
 
@@ -160,26 +143,14 @@ class IssueService:
         return issue
 
     @classmethod
-    def get_by_id(cls, issue_id: int) -> IssueType:
+    def get_by_id(cls, issue_id: int) -> Issue:
         """Get issue by id."""
         try:
             issue = Issue.objects.select_related('project', 'release').get(id=issue_id)
         except Issue.DoesNotExist:
             raise cls.IssueNotFoundError()
 
-        return {
-            'title': issue.title,
-            'code': issue.code,
-            'description': issue.description,
-            'estimated_time': issue.estimated_time,
-            'logged_time': issue.logged_time,
-            'remaining_time': issue.remaining_time,
-            'author': issue.author_id,
-            'assignee': issue.assignee_id,
-            'project': issue.project.code,
-            'status': issue.status,
-            'release': issue.release.version if issue.release else None,
-        }
+        return issue
 
     @classmethod
     def create(
@@ -217,27 +188,11 @@ class IssueService:
             )
 
     @classmethod
-    def get_list(cls) -> list[IssueType]:
+    def get_list(cls) -> QuerySet[Issue]:
         """Get issues list."""
         issues = Issue.objects.all().select_related('project', 'release')
 
-        issues_data: list[IssueType] = []
-        for issue in issues:
-            issues_data.append({
-                'title': issue.title,
-                'code': issue.code,
-                'description': issue.description,
-                'estimated_time': issue.estimated_time,
-                'logged_time': issue.logged_time,
-                'remaining_time': issue.remaining_time,
-                'author': issue.author_id,
-                'assignee': issue.assignee_id,
-                'project': issue.project.code,
-                'status': issue.status,
-                'release': issue.release.version if issue.release else None,
-            })
-
-        return issues_data
+        return issues
 
     @classmethod
     def update(cls, issue_id: int, user: User, **kwargs) -> None:

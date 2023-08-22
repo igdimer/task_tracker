@@ -12,6 +12,8 @@ from server.apps.issues.services import (CommentService, IssueService, ProjectSe
                                          ReleaseService)
 from server.apps.users.services import UserService
 
+from .serializers import IssueOutputSerializer
+
 
 class IssueCreateApi(APIView):
     """API for creation issues."""
@@ -47,26 +49,13 @@ class IssueDetailApi(APIView):
 
     authentication_classes = [TokenAuthentication]
 
-    class OutputSerializer(serializers.Serializer):
-        title = serializers.CharField()
-        code = serializers.CharField()
-        description = serializers.CharField()
-        estimated_time = serializers.DurationField()
-        logged_time = serializers.DurationField()
-        remaining_time = serializers.DurationField()
-        author = serializers.IntegerField()
-        assignee = serializers.IntegerField()
-        project = serializers.CharField()
-        status = serializers.CharField()
-        release = serializers.CharField(allow_null=True)
-
     def get(self, request: Request, issue_id: int) -> Response:  # noqa: D102
         try:
             issue = IssueService.get_by_id(issue_id)
         except IssueService.IssueNotFoundError as exc:
             raise NotFound() from exc
 
-        data = self.OutputSerializer(issue).data
+        data = IssueOutputSerializer(issue).data
         return Response(data)
 
 
@@ -75,22 +64,9 @@ class IssueListApi(APIView):
 
     authentication_classes = [TokenAuthentication]
 
-    class OutputSerializer(serializers.Serializer):
-        title = serializers.CharField()
-        code = serializers.CharField()
-        description = serializers.CharField()
-        estimated_time = serializers.DurationField()
-        logged_time = serializers.DurationField()
-        remaining_time = serializers.DurationField()
-        author = serializers.IntegerField()
-        assignee = serializers.IntegerField()
-        project = serializers.CharField()
-        status = serializers.CharField()
-        release = serializers.CharField(allow_null=True)
-
     def get(self, request: Request) -> Response:  # noqa: D102
         issues = IssueService.get_list()
-        data = self.OutputSerializer(issues, many=True).data
+        data = IssueOutputSerializer(issues, many=True).data
 
         return Response(data)
 

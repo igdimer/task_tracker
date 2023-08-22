@@ -9,5 +9,5 @@ class UserAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
     list_display = ('email', 'first_name', 'last_name', 'created_at', 'updated_at')
     search_fields = ('email', )
-    fields = ('id', 'email', 'first_name', 'last_name', 'password', ('created_at', 'updated_at'))
-    readonly_fields = ('id', 'password', 'created_at', 'updated_at')
+    fields = ('id', 'email', 'first_name', 'last_name', ('created_at', 'updated_at'))
+    readonly_fields = ('id', 'created_at', 'updated_at')

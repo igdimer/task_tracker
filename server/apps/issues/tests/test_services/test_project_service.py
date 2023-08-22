@@ -1,4 +1,5 @@
 import pytest
+from pytest_django.asserts import assertQuerySetEqual
 
 from server.apps.issues.models import Project
 from server.apps.issues.services import ProjectService
@@ -13,12 +14,10 @@ class TestProjectServiceGetById:
         """Project exists."""
         result = ProjectService.get_by_id(project.id)
 
-        assert result == {
-            'title': project.title,
-            'code': project.code,
-            'description': project.description,
-            'issues': [],
-        }
+        assert result['title'] == project.title
+        assert result['code'] == project.code
+        assert result['description'] == project.description
+        assertQuerySetEqual(result['issues'], [])
 
     def test_project_exist_with_issues(self, project):
         """Project has issues."""
@@ -26,20 +25,10 @@ class TestProjectServiceGetById:
 
         result = ProjectService.get_by_id(project.id)
 
-        assert result == {
-            'title': project.title,
-            'code': project.code,
-            'description': project.description,
-            'issues': [
-                {
-                    'title': issue.title,
-                    'code': issue.code,
-                    'status': issue.status,
-                    'release': issue.release.version,
-                    'assignee': issue.assignee.id,
-                },
-            ],
-        }
+        assert result['title'] == project.title
+        assert result['code'] == project.code
+        assert result['description'] == project.description
+        assertQuerySetEqual(result['issues'], [issue], ordered=False)
 
     def test_no_project(self):
         """Project does not exist."""

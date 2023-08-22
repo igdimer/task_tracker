@@ -1,6 +1,7 @@
 import datetime
 
 import pytest
+from pytest_django.asserts import assertQuerySetEqual
 
 from server.apps.issues.enums import IssueStatusEnum
 from server.apps.issues.models import Issue
@@ -140,37 +141,7 @@ class TestIssueServiceGetById:
     def test_success_no_release(self, issue):
         """Getting issue without release."""
         result = IssueService.get_by_id(issue.id)
-        assert result == {
-            'title': issue.title,
-            'code': issue.code,
-            'description': issue.description,
-            'estimated_time': issue.estimated_time,
-            'logged_time': issue.logged_time,
-            'remaining_time': issue.remaining_time,
-            'author': issue.author_id,
-            'assignee': issue.assignee_id,
-            'project': issue.project.code,
-            'status': 'open',
-            'release': None,
-        }
-
-    def test_success_with_release(self):
-        """Getting issue without release."""
-        issue = IssueFactory()
-        result = IssueService.get_by_id(issue.id)
-        assert result == {
-            'title': issue.title,
-            'code': issue.code,
-            'description': issue.description,
-            'estimated_time': issue.estimated_time,
-            'logged_time': issue.logged_time,
-            'remaining_time': issue.remaining_time,
-            'author': issue.author_id,
-            'assignee': issue.assignee_id,
-            'project': issue.project.code,
-            'status': 'open',
-            'release': issue.release.version,
-        }
+        assert result == issue
 
     def test_no_issue(self):
         """Issue does not exist."""
@@ -207,57 +178,12 @@ class TestIssueServiceGetList:
         )
 
         result = IssueService.get_list()
-        assert result == [
-            {
-                'title': issue_1.title,
-                'code': issue_1.code,
-                'description': issue_1.description,
-                'estimated_time': issue_1.estimated_time,
-                'logged_time': issue_1.logged_time,
-                'remaining_time': issue_1.remaining_time,
-                'author': issue_1.author_id,
-                'assignee': issue_1.assignee_id,
-                'project': issue_1.project.code,
-                'status': 'open',
-                'release': issue_1.release.version,
-            },
-            {
-                'title': issue_2.title,
-                'code': issue_2.code,
-                'description': issue_2.description,
-                'estimated_time': issue_2.estimated_time,
-                'logged_time': issue_2.logged_time,
-                'remaining_time': issue_2.remaining_time,
-                'author': issue_2.author_id,
-                'assignee': issue_2.assignee_id,
-                'project': issue_2.project.code,
-                'status': 'open',
-                'release': issue_2.release.version,
-            },
-        ]
-
-    def test_success_no_release(self, issue):
-        """Issue has no release."""
-        result = IssueService.get_list()
-        assert result == [
-            {
-                'title': issue.title,
-                'code': issue.code,
-                'description': issue.description,
-                'estimated_time': issue.estimated_time,
-                'logged_time': issue.logged_time,
-                'remaining_time': issue.remaining_time,
-                'author': issue.author_id,
-                'assignee': issue.assignee_id,
-                'project': issue.project.code,
-                'status': 'open',
-                'release': None,
-            },
-        ]
+        assertQuerySetEqual(result, [issue_1, issue_2], ordered=False)
 
     def test_no_issues(self):
         """Empty list of issues."""
-        assert IssueService.get_list() == []
+        result = IssueService.get_list()
+        assertQuerySetEqual(result, [])
 
 
 @pytest.mark.django_db()

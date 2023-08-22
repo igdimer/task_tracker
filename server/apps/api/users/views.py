@@ -25,7 +25,7 @@ class UserDetailApi(APIView):
                 'code': serializers.CharField(),
                 'title': serializers.CharField(),
                 'status': serializers.CharField(),
-                'release': serializers.CharField(allow_null=True),
+                'release': serializers.CharField(source='get_release_version'),
             }),
         )
 
@@ -82,7 +82,7 @@ class UserGetAssignedIssuesApi(APIView):
                 'title': serializers.CharField(),
                 'status': serializers.CharField(),
                 'estimated_time': serializers.DurationField(),
-                'release': serializers.CharField(),
+                'release': serializers.CharField(source='get_release_version'),
             }),
         )
 
