@@ -13,6 +13,8 @@ from . import exceptions
 class SignUpApi(APIView):
     """API for user registration."""
 
+    authentication_classes: list[str] = []
+
     class InputSerializer(serializers.Serializer):
         email = serializers.EmailField()
         first_name = serializers.CharField()
@@ -37,6 +39,8 @@ class SignUpApi(APIView):
 
 class LoginApi(APIView):
     """API for user log in."""
+
+    authentication_classes: list[str] = []
 
     class InputSerializer(serializers.Serializer):
         email = serializers.EmailField()
@@ -63,6 +67,8 @@ class LoginApi(APIView):
 
 class RefreshTokenApi(APIView):
     """API for updating access token by refresh token."""
+
+    authentication_classes: list[str] = []
 
     class InputSerializer(serializers.Serializer):
         refresh_token = serializers.CharField()

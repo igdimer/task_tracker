@@ -95,6 +95,20 @@ class TestIssueCreateApi:
             'detail': 'Not found.',
         }
 
+    def test_release_not_belong_to_project(self, mock_create, authorized_client):
+        """Provided release_id does not exist."""
+        mock_create.side_effect = IssueService.ReleaseNotBelongToProject()
+        response = authorized_client.post(
+            reverse('issues:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            'detail': 'Release does not belong provided project.',
+        }
+
     def test_auth_fail(self):
         """Non authenticated response."""
         client = APIClient()
@@ -359,6 +373,20 @@ class TestIssueUpdateApi:
             logged_time=datetime.timedelta(minutes=30),
             status='resolved',
         )
+
+    def test_release_not_belong_to_project(self, mock_update, authorized_client):
+        """Provided release_id does not exist."""
+        mock_update.side_effect = IssueService.ReleaseNotBelongToProject()
+        response = authorized_client.patch(
+            reverse('issues:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            'detail': 'Release does not belong provided project.',
+        }
 
     def test_auth_fail(self):
         """Non authenticated response."""

@@ -4,7 +4,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from server.apps.auth.authentication import TokenAuthentication
 from server.apps.issues.enums import ReleaseStatusEnum
 from server.apps.issues.services import ProjectService, ReleaseService
 
@@ -14,8 +13,6 @@ from . import exceptions
 
 class ProjectCreateApi(APIView):
     """API for creating projects."""
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField()
@@ -36,8 +33,6 @@ class ProjectCreateApi(APIView):
 
 class ProjectUpdateApi(APIView):
     """API for updating projects."""
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField(required=False)
@@ -68,8 +63,6 @@ class ProjectUpdateApi(APIView):
 class ProjectDetailApi(APIView):
     """API for getting project."""
 
-    authentication_classes = [TokenAuthentication]
-
     class OutputSerializer(serializers.Serializer):
         title = serializers.CharField()
         code = serializers.CharField()
@@ -97,8 +90,6 @@ class ProjectDetailApi(APIView):
 class ReleaseCreateApi(APIView):
     """API for creating release."""
 
-    authentication_classes = [TokenAuthentication]
-
     class InputSerializer(serializers.Serializer):
         version = serializers.CharField()
         release_date = serializers.DateField(required=False)
@@ -121,8 +112,6 @@ class ReleaseCreateApi(APIView):
 class ReleaseDetailApi(APIView):
     """API for creating release."""
 
-    authentication_classes = [TokenAuthentication]
-
     class OutputSerializer(serializers.Serializer):
         version = serializers.CharField()
         description = serializers.CharField()
@@ -141,8 +130,6 @@ class ReleaseDetailApi(APIView):
 
 class ReleaseUpdateApi(APIView):
     """API for updating projects."""
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         version = serializers.CharField(required=False)

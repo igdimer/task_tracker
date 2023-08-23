@@ -4,7 +4,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from server.apps.auth.authentication import TokenAuthentication
 from server.apps.users.services import UserService
 
 from ..utils import inline_serializer
@@ -13,8 +12,6 @@ from . import exceptions
 
 class UserDetailApi(APIView):
     """API for getting user."""
-
-    authentication_classes = [TokenAuthentication]
 
     class OutputSerializer(serializers.Serializer):
         email = serializers.EmailField()
@@ -41,8 +38,6 @@ class UserDetailApi(APIView):
 
 class UserUpdateApi(APIView):
     """API for updating user profile data."""
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         email = serializers.EmailField(required=False)
@@ -72,8 +67,6 @@ class UserUpdateApi(APIView):
 
 class UserGetAssignedIssuesApi(APIView):
     """API for updating user profile data."""
-
-    authentication_classes = [TokenAuthentication]
 
     class OutputSerializer(serializers.Serializer):
         issues = serializers.ListField(

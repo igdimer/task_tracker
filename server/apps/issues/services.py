@@ -132,6 +132,15 @@ class IssueService:
     class IssueNotFoundError(BaseServiceError):
         """Issue does not exist."""
 
+    class ReleaseNotBelongToProject(BaseServiceError):
+        """Release does not belong provided project."""
+
+    @classmethod
+    def _check_release_belong_to_project(cls, release: Release, project_id: int) -> None:
+        """Check whether release belongs to provided project."""
+        if release.project_id != project_id:
+            raise cls.ReleaseNotBelongToProject()
+
     @classmethod
     def get_or_error(cls, issue_id: int) -> Issue:
         """Get issue or raise exception."""
@@ -167,7 +176,8 @@ class IssueService:
         project = ProjectService.get_or_error(project_id=project_id)
         assignee = UserService.get_or_error(user_id=assignee_id)
         if release_id is not None:
-            ReleaseService.get_or_error(release_id=release_id)
+            release = ReleaseService.get_or_error(release_id=release_id)
+            cls._check_release_belong_to_project(release, project_id)
 
         issue = Issue.objects.create(
             project=project,
@@ -204,7 +214,8 @@ class IssueService:
         if 'release_id' in kwargs:
             release_id = kwargs['release_id']
             if release_id is not None:
-                ReleaseService.get_or_error(release_id)
+                release = ReleaseService.get_or_error(release_id)
+                cls._check_release_belong_to_project(release, issue.project_id)
 
         assignee_id = kwargs.pop('assignee_id', None)
         if assignee_id is not None:

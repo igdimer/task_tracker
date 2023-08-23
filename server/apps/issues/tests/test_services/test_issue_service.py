@@ -9,7 +9,7 @@ from server.apps.issues.services import IssueService, ProjectService, ReleaseSer
 from server.apps.users.services import UserService
 from server.apps.users.tests.factories import UserFactory
 
-from ..factories import IssueFactory, ReleaseFactory
+from ..factories import IssueFactory, ProjectFactory, ReleaseFactory
 
 
 @pytest.mark.django_db()
@@ -115,6 +115,24 @@ class TestIssueServiceCreate:
                 assignee_id=user.id,
                 author=author,
                 estimated_time=datetime.timedelta(hours=4),
+            )
+        assert Issue.objects.all().count() == 0
+
+    def test_release_not_belong_to_project(self, project, user, author):
+        """Provided release does not belong to provided project."""
+        another_project = ProjectFactory(title='another_project')
+        another_release = ReleaseFactory(project=another_project)
+
+        assert Issue.objects.all().count() == 0
+        with pytest.raises(IssueService.ReleaseNotBelongToProject):
+            IssueService.create(
+                project_id=project.id,
+                title='test_title',
+                description='test_text',
+                assignee_id=user.id,
+                author=author,
+                estimated_time=datetime.timedelta(hours=4),
+                release_id=another_release.id,
             )
         assert Issue.objects.all().count() == 0
 
@@ -276,6 +294,18 @@ class TestIssueServiceUpdate:
         issue.refresh_from_db()
 
         assert issue.release is None
+
+    def test_release_not_belong_to_project(self, issue):
+        """Provided release does not belong project of issue."""
+        another_project = ProjectFactory(title='another_project')
+        another_release = ReleaseFactory(project=another_project)
+
+        with pytest.raises(IssueService.ReleaseNotBelongToProject):
+            IssueService.update(
+                user=issue.author,
+                issue_id=issue.id,
+                release_id=another_release.id,
+            )
 
     def test_issue_not_found(self, user):
         """Issue not found."""

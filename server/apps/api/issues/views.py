@@ -6,19 +6,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from server.apps.auth.authentication import TokenAuthentication
 from server.apps.issues.enums import IssueStatusEnum
 from server.apps.issues.services import (CommentService, IssueService, ProjectService,
                                          ReleaseService)
 from server.apps.users.services import UserService
 
+from . import exceptions
 from .serializers import IssueOutputSerializer
 
 
 class IssueCreateApi(APIView):
     """API for creation issues."""
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         project_id = serializers.IntegerField()
@@ -40,14 +38,14 @@ class IssueCreateApi(APIView):
             UserService.UserNotFoundError,
         ) as exc:
             raise NotFound() from exc
+        except IssueService.ReleaseNotBelongToProject as exc:
+            raise exceptions.ReleaseNotBelongToProject() from exc
 
         return Response({}, status=status.HTTP_201_CREATED)
 
 
 class IssueDetailApi(APIView):
     """API for getting issues."""
-
-    authentication_classes = [TokenAuthentication]
 
     def get(self, request: Request, issue_id: int) -> Response:  # noqa: D102
         try:
@@ -61,8 +59,6 @@ class IssueDetailApi(APIView):
 
 class IssueListApi(APIView):
     """API for getting issues list."""
-
-    authentication_classes = [TokenAuthentication]
 
     def get(self, request: Request) -> Response:  # noqa: D102
         issues = IssueService.get_list()
@@ -83,8 +79,6 @@ class IssueUpdateApi(APIView):
 
     Logged time will be added to existing value of issue instance.
     """
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField(required=False)
@@ -114,14 +108,14 @@ class IssueUpdateApi(APIView):
             ReleaseService.ReleaseNotFoundError,
         ) as exc:
             raise NotFound() from exc
+        except IssueService.ReleaseNotBelongToProject as exc:
+            raise exceptions.ReleaseNotBelongToProject() from exc
 
         return Response({})
 
 
 class CommentCreateApi(APIView):
     """API for creation comments."""
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         text = serializers.CharField()
@@ -145,8 +139,6 @@ class CommentCreateApi(APIView):
 class CommentDetailApi(APIView):
     """API for getting comments."""
 
-    authentication_classes = [TokenAuthentication]
-
     class OutputSerializer(serializers.Serializer):
         text = serializers.CharField()
         author_id = serializers.IntegerField()
@@ -164,8 +156,6 @@ class CommentDetailApi(APIView):
 
 class CommentUpdateApi(APIView):
     """API for updating comments."""
-
-    authentication_classes = [TokenAuthentication]
 
     class InputSerializer(serializers.Serializer):
         text = serializers.CharField()
@@ -188,8 +178,6 @@ class CommentUpdateApi(APIView):
 
 class CommentListApi(APIView):
     """API for getting comments list."""
-
-    authentication_classes = [TokenAuthentication]
 
     class OutputSerializer(serializers.Serializer):
         text = serializers.CharField()
