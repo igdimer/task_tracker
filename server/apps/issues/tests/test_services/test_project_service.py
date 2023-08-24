@@ -12,7 +12,7 @@ class TestProjectServiceGetById:
 
     def test_project_exist(self, project):
         """Project exists."""
-        result = ProjectService.get_by_id(project.id)
+        result = ProjectService.get_project_info(project.id)
 
         assert result['title'] == project.title
         assert result['code'] == project.code
@@ -23,7 +23,7 @@ class TestProjectServiceGetById:
         """Project has issues."""
         issue = IssueFactory(project=project)
 
-        result = ProjectService.get_by_id(project.id)
+        result = ProjectService.get_project_info(project.id)
 
         assert result['title'] == project.title
         assert result['code'] == project.code
@@ -33,7 +33,7 @@ class TestProjectServiceGetById:
     def test_no_project(self):
         """Project does not exist."""
         with pytest.raises(ProjectService.ProjectNotFoundError):
-            ProjectService.get_by_id(9999)
+            ProjectService.get_project_info(9999)
 
 
 @pytest.mark.django_db()

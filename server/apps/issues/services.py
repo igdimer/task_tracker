@@ -55,7 +55,7 @@ class ProjectService:
             raise cls.ProjectAlreadyExist() from exc
 
     @classmethod
-    def get_by_id(cls, project_id: int) -> dict[str, str | QuerySet[Issue]]:
+    def get_project_info(cls, project_id: int) -> dict[str, str | QuerySet[Issue]]:
         """Get project."""
         project = cls.get_or_error(project_id)
 
@@ -205,9 +205,8 @@ class IssueService:
         return issues
 
     @classmethod
-    def update(cls, issue_id: int, user: User, **kwargs) -> None:
+    def update(cls, issue: Issue, user: User, **kwargs) -> None:
         """Edit existing issue."""
-        issue = cls.get_or_error(issue_id)
         notified_emails = []
         updated_fields = copy.copy(kwargs)
 
@@ -244,7 +243,7 @@ class IssueService:
 
             send_notification_task.delay(
                 emails=notified_emails,
-                subject=f'Issue {issue.code} updated',
+                subject=f'Issue {issue.code}',
                 message=message,
             )
 
@@ -274,12 +273,12 @@ class CommentService:
             message = f'Issue {issue.code} was commented'
             send_notification_task.delay(
                 emails=notified_emails,
-                subject=f'Issue {issue.code} was commented',
+                subject=f'Issue {issue.code}',
                 message=message,
             )
 
     @classmethod
-    def get_by_id(cls, issue_id: int, comment_id: int):
+    def get_or_error(cls, issue_id: int, comment_id: int) -> Comment:
         """Get comment by id."""
         issue = IssueService.get_or_error(issue_id)
 
@@ -291,9 +290,8 @@ class CommentService:
         return comment
 
     @classmethod
-    def update(cls, issue_id: int, comment_id: int, text: str) -> None:
+    def update(cls, comment: Comment, text: str) -> None:
         """Update existing comment."""
-        comment = cls.get_by_id(issue_id=issue_id, comment_id=comment_id)
         comment.text = text
         comment.save()
 

@@ -245,7 +245,9 @@ class TestProjectDetailApi:
     @pytest.fixture()
     def mock_get_by_id(self):
         """Mock fixture method get_by_id of ProjectService."""
-        with mock.patch('server.apps.issues.services.ProjectService.get_by_id') as mock_method:
+        with mock.patch(
+            'server.apps.issues.services.ProjectService.get_project_info',
+        ) as mock_method:
             yield mock_method
 
     def test_success(self, authorized_client, mock_get_by_id):

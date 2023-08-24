@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from server.apps.users.services import UserService
 
+from .. import permissions
 from ..utils import inline_serializer
 from . import exceptions
 
@@ -28,7 +29,7 @@ class UserDetailApi(APIView):
 
     def get(self, request: Request, user_id: int) -> Response:  # noqa: D102
         try:
-            user = UserService.get_by_id(user_id)
+            user = UserService.get_user_info(user_id)
         except UserService.UserNotFoundError as exc:
             raise NotFound() from exc
 
@@ -38,6 +39,8 @@ class UserDetailApi(APIView):
 
 class UserUpdateApi(APIView):
     """API for updating user profile data."""
+
+    permission_classes = [permissions.IsAdmin | permissions.IsUserProfileOwner]
 
     class InputSerializer(serializers.Serializer):
         email = serializers.EmailField(required=False)
@@ -56,10 +59,15 @@ class UserUpdateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            UserService.update(user_id=user_id, **serializer.validated_data)
+            user = UserService.get_or_error(user_id=user_id)
         except UserService.UserNotFoundError as exc:
             raise NotFound() from exc
-        except UserService.UserAlreadyExist as exc:
+
+        self.check_object_permissions(request, user)
+
+        try:
+            UserService.update(user=user, **serializer.validated_data)
+        except UserService.UserAlreadyExistError as exc:
             raise exceptions.UniqueUserConstraintError() from exc
 
         return Response({})

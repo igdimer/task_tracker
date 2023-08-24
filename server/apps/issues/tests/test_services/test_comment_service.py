@@ -37,7 +37,7 @@ class TestCommentServiceCreate:
         kwargs = mock_notification_task.call_args.kwargs
         emails = kwargs['emails']
 
-        assert kwargs['subject'] == f'Issue {issue.code} was commented'
+        assert kwargs['subject'] == f'Issue {issue.code}'
         assert len(emails) == 2
         assert user.email in emails
         assert author.email in emails
@@ -56,7 +56,7 @@ class TestCommentServiceCreate:
         kwargs = mock_notification_task.call_args.kwargs
         emails = kwargs['emails']
 
-        assert kwargs['subject'] == f'Issue {issue.code} was commented'
+        assert kwargs['subject'] == f'Issue {issue.code}'
         assert len(emails) == 1
         assert author.email in emails
         assert kwargs['message'] == f'Issue {issue.code} was commented'
@@ -75,7 +75,7 @@ class TestCommentServiceGetById:
 
     def test_success(self, comment):
         """Success getting comment."""
-        result_comment = CommentService.get_by_id(
+        result_comment = CommentService.get_or_error(
             issue_id=comment.issue_id,
             comment_id=comment.id,
         )
@@ -84,12 +84,12 @@ class TestCommentServiceGetById:
     def test_comment_not_found(self, issue):
         """Comment not found."""
         with pytest.raises(CommentService.CommentNotFoundError):
-            CommentService.get_by_id(issue_id=issue.id, comment_id=999)
+            CommentService.get_or_error(issue_id=issue.id, comment_id=999)
 
     def test_issue_not_found(self):
         """Issue not found."""
         with pytest.raises(IssueService.IssueNotFoundError):
-            CommentService.get_by_id(issue_id=999, comment_id=999)
+            CommentService.get_or_error(issue_id=999, comment_id=999)
 
 
 @pytest.mark.django_db()
@@ -97,22 +97,12 @@ class TestCommentServiceUpdate:
     """Testing method get_by_id of CommentService."""
 
     def test_success(self, comment):
-        """Success updating comment."""
+        """Successful updating comment."""
         assert comment.text == 'test_text'
-        CommentService.update(issue_id=comment.issue_id, comment_id=comment.id, text='new_text')
+        CommentService.update(comment=comment, text='new_text')
         comment.refresh_from_db()
 
         assert comment.text == 'new_text'
-
-    def test_comment_not_found(self, issue):
-        """Comment not found."""
-        with pytest.raises(CommentService.CommentNotFoundError):
-            CommentService.update(issue_id=issue.id, comment_id=999, text='new_text')
-
-    def test_issue_not_found(self):
-        """Issue not found."""
-        with pytest.raises(IssueService.IssueNotFoundError):
-            CommentService.update(issue_id=999, comment_id=999, text='new_text')
 
 
 @pytest.mark.django_db()

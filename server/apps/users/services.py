@@ -13,7 +13,7 @@ class UserService:
     class UserNotFoundError(BaseServiceError):
         """User with specified email does not exist."""
 
-    class UserAlreadyExist(BaseServiceError):
+    class UserAlreadyExistError(BaseServiceError):
         """User with provided email already exists."""
 
     @classmethod
@@ -37,7 +37,7 @@ class UserService:
         return user
 
     @classmethod
-    def get_by_id(cls, user_id: int) -> dict[str, str | QuerySet[Issue]]:
+    def get_user_info(cls, user_id: int) -> dict[str, str | QuerySet[Issue]]:
         """Get user by id."""
         user = cls.get_or_error(user_id)
 
@@ -49,17 +49,15 @@ class UserService:
         }
 
     @classmethod
-    def update(cls, user_id: int, **kwargs) -> None:
+    def update(cls, user: User, **kwargs) -> None:
         """Update existing user."""
-        user = cls.get_or_error(user_id)
-
         for key, value in kwargs.items():
             setattr(user, key, value)
 
         try:
             user.save()
         except IntegrityError as exc:
-            raise cls.UserAlreadyExist() from exc
+            raise cls.UserAlreadyExistError() from exc
 
     @classmethod
     def get_assigned_issues(cls, user: User) -> dict[str, QuerySet[Issue]]:

@@ -79,7 +79,7 @@ class ProjectDetailApi(APIView):
 
     def get(self, request: Request, project_id: int) -> Response:  # noqa: D102
         try:
-            project = ProjectService.get_by_id(project_id)
+            project = ProjectService.get_project_info(project_id)
         except ProjectService.ProjectNotFoundError as exc:
             raise NotFound() from exc
 

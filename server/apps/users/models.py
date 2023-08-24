@@ -10,6 +10,7 @@ class User(BaseModel):
     first_name = models.CharField(max_length=120)
     last_name = models.CharField(max_length=120)
     password = models.CharField(max_length=64)
+    is_admin = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'users'

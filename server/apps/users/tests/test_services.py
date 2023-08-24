@@ -27,7 +27,7 @@ class TestUserServiceGetMethods:
 
     def test_get_by_id(self, user):
         """Check get_by_id method in case user exists."""
-        result = UserService.get_by_id(user_id=user.id)
+        result = UserService.get_user_info(user_id=user.id)
 
         assert result['email'] == user.email
         assert result['first_name'] == user.first_name
@@ -37,14 +37,14 @@ class TestUserServiceGetMethods:
     def test_get_by_id_no_user(self, user):
         """Check get_by_id method in case no required user."""
         with pytest.raises(UserService.UserNotFoundError):
-            UserService.get_by_id(user_id=9999)
+            UserService.get_user_info(user_id=9999)
 
     def test_get_by_id_with_issues(self, user):
         """Check get_by_id method in case user exists and has issues."""
         author = UserFactory(email='author@mail.com')
         issue_1 = IssueFactory(assignee=user, author=author)
         issue_2 = IssueFactory(assignee=user, author=author, release=None, project=issue_1.project)
-        result = UserService.get_by_id(user_id=user.id)
+        result = UserService.get_user_info(user_id=user.id)
 
         assert result['email'] == user.email
         assert result['first_name'] == user.first_name
@@ -59,7 +59,7 @@ class TestUserServiceUpdate:
     def test_success(self, user):
         """Success updating."""
         UserService.update(
-            user.id,
+            user=user,
             email='new@mail.com',
             first_name='NewName',
             last_name='NewLastName',
@@ -70,12 +70,12 @@ class TestUserServiceUpdate:
         assert user.first_name == 'NewName'
         assert user.last_name == 'NewLastName'
 
-    def test_existing_email_fail(self, user):
+    def test_existing_email_error(self, user):
         """User with updated email already exists."""
         UserFactory(email='unique@mail.com')
 
-        with pytest.raises(UserService.UserAlreadyExist):
-            UserService.update(user.id, email='unique@mail.com')
+        with pytest.raises(UserService.UserAlreadyExistError):
+            UserService.update(user, email='unique@mail.com')
 
 
 @pytest.mark.django_db()

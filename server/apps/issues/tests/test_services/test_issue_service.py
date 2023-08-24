@@ -222,7 +222,7 @@ class TestIssueServiceUpdate:
         """Success updating."""
         IssueService.update(
             user=issue.author,
-            issue_id=issue.id,
+            issue=issue,
             title='new_title',
             description='new_description',
             estimated_time=datetime.timedelta(hours=3),
@@ -244,7 +244,7 @@ class TestIssueServiceUpdate:
         kwargs = mock_notification_task.call_args.kwargs
         emails = kwargs['emails']
 
-        assert kwargs['subject'] == f'Issue {issue.code} updated'
+        assert kwargs['subject'] == f'Issue {issue.code}'
         assert len(emails) == 2
         assert user.email in emails
         assert new_user.email in emails
@@ -260,7 +260,7 @@ class TestIssueServiceUpdate:
         with pytest.raises(ReleaseService.ReleaseNotFoundError):
             IssueService.update(
                 user=issue.author,
-                issue_id=issue.id,
+                issue=issue,
                 title='new_title',
                 description='new_description',
                 estimated_time=datetime.timedelta(hours=3),
@@ -275,7 +275,7 @@ class TestIssueServiceUpdate:
         with pytest.raises(UserService.UserNotFoundError):
             IssueService.update(
                 user=issue.author,
-                issue_id=issue.id,
+                issue=issue,
                 title='new_title',
                 description='new_description',
                 estimated_time=datetime.timedelta(hours=3),
@@ -290,7 +290,7 @@ class TestIssueServiceUpdate:
         issue = IssueFactory()
         assert issue.release
 
-        IssueService.update(user=issue.author, issue_id=issue.id, release_id=None)
+        IssueService.update(user=issue.author, issue=issue, release_id=None)
         issue.refresh_from_db()
 
         assert issue.release is None
@@ -303,21 +303,16 @@ class TestIssueServiceUpdate:
         with pytest.raises(IssueService.ReleaseNotBelongToProject):
             IssueService.update(
                 user=issue.author,
-                issue_id=issue.id,
+                issue=issue,
                 release_id=another_release.id,
             )
-
-    def test_issue_not_found(self, user):
-        """Issue not found."""
-        with pytest.raises(IssueService.IssueNotFoundError):
-            IssueService.update(user=user, issue_id=999, title='new_title')
 
     def test_adding_logged_time(self, user):
         """Adding logged time to existing value."""
         issue = IssueFactory(logged_time=datetime.timedelta(hours=3))
         IssueService.update(
             user=user,
-            issue_id=issue.id,
+            issue=issue,
             logged_time=datetime.timedelta(minutes=30),
         )
         issue.refresh_from_db()
@@ -333,14 +328,14 @@ class TestIssueServiceUpdate:
     ):
         """Author updates the issue."""
         IssueService.update(
-            issue_id=issue.id,
+            issue=issue,
             user=author,
             release_id=None,
         )
 
         mock_notification_task.assert_called_with(
             emails=[user.email],
-            subject=f'Issue {issue.code} updated',
+            subject=f'Issue {issue.code}',
             message=f'Issue {issue.code} updated:\nrelease_id: None\n',
         )
 
@@ -352,7 +347,7 @@ class TestIssueServiceUpdate:
         """Author is assignee and updates the issue (empty recipients list)."""
         issue = IssueFactory(author=author, assignee=author)
         IssueService.update(
-            issue_id=issue.id,
+            issue=issue,
             user=author,
             release_id=None,
         )

@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 
 from server.apps.issues.tests.factories import IssueFactory
 from server.apps.users.services import UserService
+from server.apps.users.tests.factories import UserFactory
 
 
 @pytest.mark.django_db()
@@ -15,7 +16,7 @@ class TestUserDetailApi:
     @pytest.fixture()
     def mock_get_by_id(self):
         """Mock fixture for method get_by_id of UserService."""
-        with mock.patch('server.apps.users.services.UserService.get_by_id') as get_mock:
+        with mock.patch('server.apps.users.services.UserService.get_user_info') as get_mock:
             yield get_mock
 
     def test_success_response(self, user, authorized_client, mock_get_by_id):
@@ -94,7 +95,7 @@ class TestUserUpdateApi:
         with mock.patch('server.apps.users.services.UserService.update') as update_mock:
             yield update_mock
 
-    def test_success(self, authorized_client, mock_update):
+    def test_success(self, authorized_client, mock_update, mock_user_get_or_error, user):
         """Success response."""
         response = authorized_client.patch(
             reverse('users:update', args=[1]),
@@ -104,10 +105,12 @@ class TestUserUpdateApi:
 
         assert response.status_code == 200
         assert response.json() == {}
+        mock_user_get_or_error.assert_called_with(user_id=1)
+        mock_update.assert_called_with(user=user, **self.default_payload)
 
-    def test_user_not_found(self, authorized_client, mock_update):
+    def test_user_not_found(self, authorized_client, mock_user_get_or_error):
         """User is not found."""
-        mock_update.side_effect = UserService.UserNotFoundError()
+        mock_user_get_or_error.side_effect = UserService.UserNotFoundError()
 
         response = authorized_client.patch(
             reverse('users:update', args=[1]),
@@ -120,9 +123,9 @@ class TestUserUpdateApi:
             'detail': 'Not found.',
         }
 
-    def test_unique_email_error(self, authorized_client, mock_update):
+    def test_unique_email_error(self, authorized_client, mock_update, mock_user_get_or_error):
         """User with provided email already exists."""
-        mock_update.side_effect = UserService.UserAlreadyExist()
+        mock_update.side_effect = UserService.UserAlreadyExistError()
 
         response = authorized_client.patch(
             reverse('users:update', args=[1]),
@@ -135,8 +138,14 @@ class TestUserUpdateApi:
             'detail': 'User with provided email already exists.',
         }
 
-    def test_restricted_attribute_provided(self, authorized_client, mock_update):
-        """Check that field password is not passed to service."""
+    def test_restricted_attribute_provided(
+        self,
+        authorized_client,
+        mock_update,
+        mock_user_get_or_error,
+        user,
+    ):
+        """Check whether field password is not passed to service."""
         payload = {
             'email': 'test@email.com',
             'first_name': 'Joe',
@@ -153,7 +162,7 @@ class TestUserUpdateApi:
         assert response.status_code == 200
         assert response.json() == {}
         mock_update.assert_called_with(
-            user_id=1,
+            user=user,
             email='test@email.com',
             first_name='Joe',
             last_name='Black',
@@ -172,6 +181,38 @@ class TestUserUpdateApi:
         assert response.json() == {
             'detail': 'Incorrect authentication credentials.',
         }
+
+    def test_permission_denied(self, mock_user_get_or_error):
+        """User is trying update not his own profile."""
+        user = UserFactory(email='another@user.com')
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse('users:update', args=[1]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+
+    def test_admin_access(self, mock_user_get_or_error, mock_update):
+        """Response from admin user."""
+        user = UserFactory(email='admin@user.com', is_admin=True)
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse('users:update', args=[1]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
 
     def test_method_not_allowed(self, authorized_client):
         """Incorrect HTTP method."""
@@ -204,9 +245,9 @@ class TestUserUpdateApi:
             },
         }
 
-    def test_internal_error(self, authorized_client, mock_update):
+    def test_internal_error(self, authorized_client, mock_user_get_or_error):
         """Internal server error."""
-        mock_update.side_effect = Exception()
+        mock_user_get_or_error.side_effect = Exception()
         response = authorized_client.patch(
             reverse('users:update', args=[1]),
             self.default_payload,

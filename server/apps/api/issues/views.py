@@ -11,6 +11,7 @@ from server.apps.issues.services import (CommentService, IssueService, ProjectSe
                                          ReleaseService)
 from server.apps.users.services import UserService
 
+from .. import permissions
 from . import exceptions
 from .serializers import IssueOutputSerializer
 
@@ -80,6 +81,8 @@ class IssueUpdateApi(APIView):
     Logged time will be added to existing value of issue instance.
     """
 
+    permission_classes = [permissions.IsAdmin | permissions.IsAuthor | permissions.IsAssignee]
+
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
@@ -101,12 +104,15 @@ class IssueUpdateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            IssueService.update(issue_id=issue_id, user=request.user, **serializer.validated_data)
-        except (
-            IssueService.IssueNotFoundError,
-            UserService.UserNotFoundError,
-            ReleaseService.ReleaseNotFoundError,
-        ) as exc:
+            issue = IssueService.get_or_error(issue_id=issue_id)
+        except IssueService.IssueNotFoundError as exc:
+            raise NotFound() from exc
+
+        self.check_object_permissions(request, issue)
+
+        try:
+            IssueService.update(issue=issue, user=request.user, **serializer.validated_data)
+        except (UserService.UserNotFoundError, ReleaseService.ReleaseNotFoundError) as exc:
             raise NotFound() from exc
         except IssueService.ReleaseNotBelongToProject as exc:
             raise exceptions.ReleaseNotBelongToProject() from exc
@@ -146,7 +152,7 @@ class CommentDetailApi(APIView):
 
     def get(self, request: Request, issue_id: int, comment_id: int) -> Response:   # noqa: D102
         try:
-            comment = CommentService.get_by_id(issue_id=issue_id, comment_id=comment_id)
+            comment = CommentService.get_or_error(issue_id=issue_id, comment_id=comment_id)
         except (IssueService.IssueNotFoundError, CommentService.CommentNotFoundError) as exc:
             raise NotFound() from exc
 
@@ -157,6 +163,8 @@ class CommentDetailApi(APIView):
 class CommentUpdateApi(APIView):
     """API for updating comments."""
 
+    permission_classes = [permissions.IsAdmin | permissions.IsAuthor]
+
     class InputSerializer(serializers.Serializer):
         text = serializers.CharField()
 
@@ -165,13 +173,12 @@ class CommentUpdateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            CommentService.update(
-                issue_id=issue_id,
-                comment_id=comment_id,
-                **serializer.validated_data,
-            )
+            comment = CommentService.get_or_error(issue_id=issue_id, comment_id=comment_id)
         except (CommentService.CommentNotFoundError, IssueService.IssueNotFoundError) as exc:
             raise NotFound() from exc
+
+        self.check_object_permissions(request, comment)
+        CommentService.update(comment=comment, **serializer.validated_data)
 
         return Response({})
 

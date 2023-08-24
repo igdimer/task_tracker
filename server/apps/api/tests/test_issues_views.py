@@ -352,7 +352,7 @@ class TestIssueUpdateApi:
         with mock.patch('server.apps.issues.services.IssueService.update') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_update, user):
+    def test_success(self, authorized_client, mock_update, user, mock_issue_get_or_error, issue):
         """Success response."""
         response = authorized_client.patch(
             reverse('issues:update', args=[999]),
@@ -364,7 +364,7 @@ class TestIssueUpdateApi:
         assert response.json() == {}
         mock_update.assert_called_with(
             user=user,
-            issue_id=999,
+            issue=issue,
             title='test_title',
             description='test_description',
             release_id=5,
@@ -374,7 +374,12 @@ class TestIssueUpdateApi:
             status='resolved',
         )
 
-    def test_release_not_belong_to_project(self, mock_update, authorized_client):
+    def test_release_not_belong_to_project(
+        self,
+        mock_update,
+        authorized_client,
+        mock_issue_get_or_error,
+    ):
         """Provided release_id does not exist."""
         mock_update.side_effect = IssueService.ReleaseNotBelongToProject()
         response = authorized_client.patch(
@@ -433,13 +438,32 @@ class TestIssueUpdateApi:
             },
         }
 
+    def test_issue_not_found(self, authorized_client, mock_issue_get_or_error):
+        """User or release not found."""
+        mock_issue_get_or_error.side_effect = IssueService.IssueNotFoundError()
+        response = authorized_client.patch(
+            reverse('issues:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
     @pytest.mark.parametrize('exc_class', [
-        IssueService.IssueNotFoundError,
         UserService.UserNotFoundError,
         ReleaseService.ReleaseNotFoundError,
     ])
-    def test_not_found(self, authorized_client, mock_update, exc_class):
-        """Issue, user or release not found."""
+    def test_user_or_release_not_found(
+        self,
+        authorized_client,
+        mock_update,
+        exc_class,
+        mock_issue_get_or_error,
+    ):
+        """User or release not found."""
         mock_update.side_effect = exc_class()
         response = authorized_client.patch(
             reverse('issues:update', args=[999]),
@@ -452,7 +476,14 @@ class TestIssueUpdateApi:
             'detail': 'Not found.',
         }
 
-    def test_provided_null_release_id(self, authorized_client, mock_update, user):
+    def test_provided_null_release_id(
+        self,
+        authorized_client,
+        mock_update,
+        user,
+        mock_issue_get_or_error,
+        issue,
+    ):
         """Provided release_id is null."""
         payload = {'release_id': None}
         response = authorized_client.patch(
@@ -462,11 +493,43 @@ class TestIssueUpdateApi:
         )
 
         assert response.status_code == 200
-        mock_update.assert_called_with(user=user, issue_id=999, release_id=None)
+        mock_update.assert_called_with(user=user, issue=issue, release_id=None)
 
-    def test_internal_error(self, authorized_client, mock_update):
+    def test_permission_denied(self, mock_issue_get_or_error, mock_update):
+        """User has no permission to update issue."""
+        user = UserFactory(email='another@user.com')
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse('issues:update', args=[1]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+
+    def test_admin_access(self, mock_issue_get_or_error, mock_update):
+        """Response from admin user."""
+        user = UserFactory(email='another@user.com', is_admin=True)
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse('issues:update', args=[1]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
+
+    def test_internal_error(self, authorized_client, mock_issue_get_or_error):
         """Internal server error."""
-        mock_update.side_effect = Exception()
+        mock_issue_get_or_error.side_effect = Exception()
         response = authorized_client.patch(
             reverse('issues:update', args=[999]),
             self.default_payload,
@@ -588,15 +651,15 @@ class TestCommentDetailApi:
     """Testing CommentDetailApi."""
 
     @pytest.fixture()
-    def mock_get_by_id(self):
-        """Mock fixture method get_by_id of CommentService."""
-        with mock.patch('server.apps.issues.services.CommentService.get_by_id') as mock_method:
+    def mock_get_or_error(self):
+        """Mock fixture method get_or_error of CommentService."""
+        with mock.patch('server.apps.issues.services.CommentService.get_or_error') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_get_by_id):
+    def test_success(self, authorized_client, mock_get_or_error):
         """Success response."""
         comment = CommentFactory(author=UserFactory(email='author@mail.com'))
-        mock_get_by_id.return_value = comment
+        mock_get_or_error.return_value = comment
 
         response = authorized_client.get(reverse('issues:comments_detail', args=[99, comment.id]))
 
@@ -611,9 +674,9 @@ class TestCommentDetailApi:
         IssueService.IssueNotFoundError,
         CommentService.CommentNotFoundError,
     ])
-    def test_not_found(self, authorized_client, exc_class, mock_get_by_id):
+    def test_not_found(self, authorized_client, exc_class, mock_get_or_error):
         """Issue or comment not found."""
-        mock_get_by_id.side_effect = exc_class()
+        mock_get_or_error.side_effect = exc_class()
         response = authorized_client.get(reverse('issues:comments_detail', args=[99, 55]))
 
         assert response.status_code == 404
@@ -640,9 +703,9 @@ class TestCommentDetailApi:
             'detail': 'Method "POST" not allowed.',
         }
 
-    def test_internal_error(self, authorized_client, mock_get_by_id):
+    def test_internal_error(self, authorized_client, mock_get_or_error):
         """Internal server error."""
-        mock_get_by_id.side_effect = Exception()
+        mock_get_or_error.side_effect = Exception()
         response = authorized_client.get(reverse('issues:comments_detail', args=[99, 55]))
 
         assert response.status_code == 500
@@ -718,6 +781,144 @@ class TestCommentListApi:
         """Internal server error."""
         mock_get_list.side_effect = Exception()
         response = authorized_client.get(reverse('issues:comments_list', args=[999]))
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestCommentUpdateApi:
+    """Testing CommentUpdateApi."""
+
+    default_payload = {
+        'text': 'corrected_text',
+    }
+
+    @pytest.fixture()
+    def mock_update(self):
+        """Mock fixture method update of CommentService."""
+        with mock.patch('server.apps.issues.services.CommentService.update') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_update, mock_comment_get_or_error, comment):
+        """Successful updating comment."""
+        response = authorized_client.patch(
+            reverse('issues:comments_update', args=[10, 20]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
+        mock_comment_get_or_error.assert_called_with(issue_id=10, comment_id=20)
+        mock_update.assert_called_with(comment=comment, text='corrected_text')
+
+    @pytest.mark.parametrize('exc_class', [
+        IssueService.IssueNotFoundError,
+        CommentService.CommentNotFoundError,
+    ])
+    def test_comment_or_issue_not_found(
+        self,
+        authorized_client,
+        mock_comment_get_or_error,
+        exc_class,
+    ):
+        """Issue or comment not found."""
+        mock_comment_get_or_error.side_effect = exc_class()
+        response = authorized_client.patch(
+            reverse('issues:comments_update', args=[10, 20]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.post(
+            reverse('issues:comments_update', args=[10, 20]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_incorrect_parameters(self, authorized_client):
+        """Incorrect response parameters."""
+        payload = {
+            'wrong_key': 'value',
+        }
+        response = authorized_client.patch(
+            reverse('issues:comments_update', args=[10, 20]),
+            payload,
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            'detail': {
+                'text': ['This field is required.'],
+            },
+        }
+
+    def test_permission_denied(self, mock_comment_get_or_error):
+        """User has no permission to update comment."""
+        user = UserFactory(email='another@user.com')
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse('issues:comments_update', args=[1, 10]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+
+    def test_admin_access(self, mock_comment_get_or_error):
+        """Response from admin user."""
+        user = UserFactory(email='another@user.com', is_admin=True)
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.patch(
+            reverse('issues:comments_update', args=[1, 10]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.get(reverse('issues:comments_update', args=[10, 20]))
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "GET" not allowed.',
+        }
+
+    def test_internal_error(self, authorized_client, mock_comment_get_or_error):
+        """Internal server error."""
+        mock_comment_get_or_error.side_effect = Exception()
+        response = authorized_client.patch(
+            reverse('issues:comments_update', args=[1, 10]),
+            self.default_payload,
+            format='json',
+        )
 
         assert response.status_code == 500
         assert response.json() == {
