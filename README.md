@@ -1,5 +1,7 @@
 # Task Tracker
 
+[![Tests](https://github.com/igdimer/task_tracker/actions/workflows/main.yml/badge.svg)](https://github.com/igdimer/task_tracker/actions/workflows/main.yml)
+
 This project is a prototype of task tracker. Functionality ideas were taken from Jira.
 
 **Stack**:
