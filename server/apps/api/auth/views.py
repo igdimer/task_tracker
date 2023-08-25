@@ -1,4 +1,4 @@
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,33 +8,6 @@ from server.apps.auth.services import AuthService
 from server.apps.users.services import UserService
 
 from . import exceptions
-
-
-class SignUpApi(APIView):
-    """API for user registration."""
-
-    authentication_classes: list[str] = []
-
-    class InputSerializer(serializers.Serializer):
-        email = serializers.EmailField()
-        first_name = serializers.CharField()
-        last_name = serializers.CharField()
-        password = serializers.CharField()
-
-    class OutputSerializer(serializers.Serializer):
-        email = serializers.EmailField()
-
-    def post(self, request: Request) -> Response:  # noqa: D102
-        serializer = self.InputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        try:
-            result = AuthService.signup(**serializer.validated_data)
-        except AuthService.UserAlreadyExistError as exc:
-            raise exceptions.UserAlreadyExistError() from exc
-
-        data = self.OutputSerializer(result).data
-        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class LoginApi(APIView):

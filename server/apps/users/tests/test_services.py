@@ -3,6 +3,7 @@ from pytest_django.asserts import assertQuerySetEqual
 
 from server.apps.issues.tests.factories import IssueFactory
 
+from ..models import User
 from ..services import UserService
 from .factories import UserFactory
 
@@ -39,9 +40,8 @@ class TestUserServiceGetMethods:
         with pytest.raises(UserService.UserNotFoundError):
             UserService.get_user_info(user_id=9999)
 
-    def test_get_by_id_with_issues(self, user):
+    def test_get_by_id_with_issues(self, user, author):
         """Check get_by_id method in case user exists and has issues."""
-        author = UserFactory(email='author@mail.com')
         issue_1 = IssueFactory(assignee=user, author=author)
         issue_2 = IssueFactory(assignee=user, author=author, release=None, project=issue_1.project)
         result = UserService.get_user_info(user_id=user.id)
@@ -105,3 +105,43 @@ class TestUserServiceGetAssignedIssues:
         result = UserService.get_assigned_issues(user)
 
         assertQuerySetEqual(result['issues'], [issue_1], ordered=False)
+
+
+@pytest.mark.django_db()
+class TestUserServiceCreate:
+    """Testing method create of UserService."""
+
+    email = 'test@maol.com'
+    first_name = 'Ozzy'
+    last_name = 'Osbourne'
+    password = 'fake_password'  # noqa: S105
+
+    def test_success(self):
+        """Successful creation."""
+        assert User.objects.all().count() == 0
+        UserService.create(
+            email=self.email,
+            first_name=self.first_name,
+            last_name=self.last_name,
+            password=self.password,
+        )
+
+        user = User.objects.get(email=self.email)
+
+        assert User.objects.all().count() == 1
+        assert user.first_name == self.first_name
+        assert user.last_name == self.last_name
+        assert user.is_admin is False
+
+    def test_user_already_exist(self, user):
+        """User already exists."""
+        assert User.objects.all().count() == 1
+
+        with pytest.raises(UserService.UserAlreadyExistError):
+            UserService.create(
+                email=user.email,
+                first_name=self.first_name,
+                last_name=self.last_name,
+                password=self.password,
+            )
+        assert User.objects.all().count() == 1

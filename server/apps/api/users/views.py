@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +9,30 @@ from server.apps.users.services import UserService
 from .. import permissions
 from ..utils import inline_serializer
 from . import exceptions
+
+
+class UserCreateApi(APIView):
+    """API for creation users."""
+
+    permission_classes = [permissions.IsAdmin]
+
+    class InputSerializer(serializers.Serializer):
+        email = serializers.EmailField()
+        first_name = serializers.CharField()
+        last_name = serializers.CharField()
+        password = serializers.CharField()
+        is_admin = serializers.BooleanField(required=False)
+
+    def post(self, request: Request) -> Response:  # noqa: D102
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            UserService.create(**serializer.validated_data)
+        except UserService.UserAlreadyExistError as exc:
+            raise exceptions.UserAlreadyExistError from exc
+
+        return Response({}, status=status.HTTP_201_CREATED)
 
 
 class UserDetailApi(APIView):

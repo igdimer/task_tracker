@@ -318,3 +318,132 @@ class TestUserGetAssignedIssuesApi:
         assert response.json() == {
             'detail': 'Internal Server Error',
         }
+
+
+@pytest.mark.django_db()
+class TestUserCreateApi:
+    """Testing UserCreateApi."""
+
+    default_payload = {
+        'email': 'test@email.com',
+        'first_name': 'Ozzy',
+        'last_name': 'Osbourne',
+        'password': 'fake_password',
+    }
+
+    @pytest.fixture()
+    def mock_create(self):
+        """Mock fixture of method create UserService."""
+        with mock.patch('server.apps.users.services.UserService.create') as mock_method:
+            yield mock_method
+
+    def test_success(self, admin_client, mock_create):
+        """Successful response."""
+        response = admin_client.post(
+            reverse('users:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 201
+        assert response.json() == {}
+        mock_create.assert_called_with(  # noqa: S106
+            email='test@email.com',
+            first_name='Ozzy',
+            last_name='Osbourne',
+            password='fake_password',
+        )
+
+    def test_user_already_exist(self, admin_client, mock_create):
+        """User with provided email already exists."""
+        mock_create.side_effect = UserService.UserAlreadyExistError()
+        response = admin_client.post(
+            reverse('users:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 409
+        assert response.json() == {
+            'detail': 'User with specified email already exists.',
+        }
+
+    def test_non_admin_response(self, authorized_client):
+        """Response from non-admin user."""
+        response = authorized_client.post(
+            reverse('users:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+
+    @pytest.mark.parametrize('is_admin', [True, False])
+    def test_provided_is_admin(self, admin_client, mock_create, is_admin):
+        """Parameter is_admin was provided."""
+        payload = {
+            'email': 'test@email.com',
+            'first_name': 'Ozzy',
+            'last_name': 'Osbourne',
+            'password': 'fake_password',
+            'is_admin': is_admin,
+        }
+        response = admin_client.post(
+            reverse('users:create'),
+            payload,
+            format='json',
+        )
+
+        assert response.status_code == 201
+        assert response.json() == {}
+        mock_create.assert_called_with(  # noqa: S106
+            email='test@email.com',
+            first_name='Ozzy',
+            last_name='Osbourne',
+            password='fake_password',
+            is_admin=is_admin,
+        )
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.post(
+            reverse('users:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_method_not_allowed(self, admin_client):
+        """Incorrect HTTP method."""
+        response = admin_client.get(
+            reverse('users:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "GET" not allowed.',
+        }
+
+    def test_internal_error(self, admin_client, mock_create):
+        """Internal server error."""
+        mock_create.side_effect = Exception()
+        response = admin_client.post(
+            reverse('users:create'),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }

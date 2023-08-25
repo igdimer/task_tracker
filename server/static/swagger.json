@@ -1201,6 +1201,16 @@
               }
             }
           },
+          "403": {
+            "description": "403 - PermissionDenied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeniedError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "404 - Issue is not found",
             "content": {
@@ -1496,6 +1506,16 @@
               }
             }
           },
+          "403": {
+            "description": "403 - PermissionDenied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeniedError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "404 - Issue or comment are not found",
             "content": {
@@ -1519,7 +1539,125 @@
         }
       }
     },
-
+    "/users/create":{
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Create user (access only for admin)",
+        "description": "Takes body parameters email, first_name, last_name, password and is_admin (optional).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "first_name",
+                  "last_name",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "user@mail.com",
+                    "description": "User's email"
+                  },
+                  "first_name": {
+                    "type": "string",
+                    "example": "John",
+                    "description": "User's first name"
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "example": "Walt",
+                    "description": "User's last name"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "fake_password",
+                    "description": "User's password"
+                  },
+                  "is_admin": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "Set user as admin"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "201 - User was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400":{
+            "description": "400 - Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 - PermissionDenied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeniedError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409 - User with provided email already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "User with provided email already exists."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/{user_id}": {
       "get": {
         "tags": [
@@ -1681,6 +1819,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 - PermissionDenied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeniedError"
                 }
               }
             }
@@ -1915,6 +2063,15 @@
                 }
               }
             }
+          }
+        }
+      },
+      "PermissionDeniedError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "You do not have permission to perform this action."
           }
         }
       }

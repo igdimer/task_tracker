@@ -1,7 +1,8 @@
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
 
 from server.apps.core.exceptions import BaseServiceError
+from server.apps.core.utils import hash_password
 from server.apps.issues.models import Issue
 
 from .models import User
@@ -47,6 +48,29 @@ class UserService:
             'last_name': user.last_name,
             'issues': user.issues_assigned_to.select_related('release'),
         }
+
+    @classmethod
+    def create(
+        cls,
+        email: str,
+        password: str,
+        first_name: str,
+        last_name: str,
+        is_admin: bool = False,
+    ) -> None:
+        """Create new user."""
+        hashed_password = hash_password(password=password, email=email)
+        try:
+            with transaction.atomic():
+                User.objects.create(
+                    email=email,
+                    password=hashed_password,
+                    is_admin=is_admin,
+                    first_name=first_name,
+                    last_name=last_name,
+                )
+        except IntegrityError:
+            raise cls.UserAlreadyExistError()
 
     @classmethod
     def update(cls, user: User, **kwargs) -> None:

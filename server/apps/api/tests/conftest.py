@@ -27,7 +27,17 @@ def comment(user):
 
 @pytest.fixture()
 def authorized_client(user):
-    """Тестовый клиент API c аутентификацией."""
+    """Test authenticated client."""
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    return client
+
+
+@pytest.fixture()
+def admin_client():
+    """Test authenticated client by admin-user."""
+    user = UserFactory(email='admin@admin.com', is_admin=True)
     client = APIClient()
     client.force_authenticate(user=user)
 

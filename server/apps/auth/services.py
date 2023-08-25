@@ -6,7 +6,6 @@ from django.conf import settings
 from django.utils import timezone
 
 from server.apps.core.exceptions import BaseServiceError
-from server.apps.users.models import User
 from server.apps.users.services import UserService
 
 from .constants import ACCESS_TOKEN_LIFETIME_DAYS, REFRESH_TOKEN_LIFETIME_DAYS
@@ -15,36 +14,11 @@ from .constants import ACCESS_TOKEN_LIFETIME_DAYS, REFRESH_TOKEN_LIFETIME_DAYS
 class AuthService:
     """Service for authentication."""
 
-    class UserAlreadyExistError(BaseServiceError):
-        """User with provided email already exists in database."""
-
     class InvalidPasswordError(BaseServiceError):
         """Invalid password was provided."""
 
     class InvalidRefreshTokenError(BaseServiceError):
         """Invalid refresh token was provided."""
-
-    @classmethod
-    def signup(  # noqa: S107
-        cls,
-        email: str,
-        first_name: str,
-        last_name: str,
-        password: str,
-    ) -> dict[str, str]:
-        """Sign up in the system."""
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'first_name': first_name,
-                'last_name': last_name,
-                'password': cls._hash_password(password, email),
-            },
-        )
-        if not created:
-            raise cls.UserAlreadyExistError()
-
-        return {'email': email}
 
     @classmethod
     def login(cls, email: str, password: str) -> dict[str, str]:

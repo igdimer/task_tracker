@@ -23,7 +23,10 @@ Approach to building project structure is partly based on [HackSoftware/Django S
 - Issues
 - Comments
 
-Authentication system is based on JWT tokens. Registration by email and password, then get access and refresh tokens.
+Authentication system is based on JWT tokens. Admin-user can create users.
+
+Use command ```python manage.py createadmin``` to create admin-user. This command is not associated with django command ```python manage.py createsuperuser```.
+To access on django-admin site use the last one.
 
 Users can create, edit and get projects, releases, issues and comments.
 Projects have releases. Issues should belong to project and can be connected to release. Comments can be added to issue.
