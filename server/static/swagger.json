@@ -564,6 +564,16 @@
               }
             }
           },
+          "403": {
+            "description": "403 - PermissionDenied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeniedError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "404 - Project is not found",
             "content": {
