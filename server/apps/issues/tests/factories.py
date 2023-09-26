@@ -16,8 +16,9 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ('title',)
 
     title = 'test_project'
-    code = factory.Sequence(lambda i: f'TP-{i + 1}')
+    code = 'TT'
     description = 'Amazing test project'
+    owner = factory.SubFactory(UserFactory, email='owner@email.com')
 
 
 class ReleaseFactory(factory.django.DjangoModelFactory):

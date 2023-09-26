@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 from rest_framework.test import APIClient
 
-from server.apps.issues.tests.factories import CommentFactory, IssueFactory
+from server.apps.issues.tests.factories import CommentFactory, IssueFactory, ProjectFactory
 from server.apps.users.tests.factories import UserFactory
 
 
@@ -17,6 +17,12 @@ def user():
 def issue(user):
     """Issue fixture."""
     return IssueFactory(author=user)
+
+
+@pytest.fixture()
+def project(user):
+    """Project fixture."""
+    return ProjectFactory(owner=user)
 
 
 @pytest.fixture()
@@ -70,5 +76,15 @@ def mock_user_get_or_error(user):
     with mock.patch(
         'server.apps.users.services.UserService.get_or_error',
         return_value=user,
+    ) as mock_method:
+        yield mock_method
+
+
+@pytest.fixture()
+def mock_project_get_or_error(project):
+    """Mock fixture method get_or_error of ProjectService."""
+    with mock.patch(
+        'server.apps.issues.services.ProjectService.get_or_error',
+        return_value=project,
     ) as mock_method:
         yield mock_method

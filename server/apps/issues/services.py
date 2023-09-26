@@ -33,19 +33,22 @@ class ProjectService:
         return project
 
     @classmethod
-    def create(cls, title: str, code: str, description: str) -> None:
+    def create(cls, title: str, code: str, description: str, owner: User) -> None:
         """Create project."""
         try:
             with transaction.atomic():
-                Project.objects.create(title=title, code=code, description=description)
+                Project.objects.create(
+                    title=title,
+                    code=code,
+                    description=description,
+                    owner=owner,
+                )
         except IntegrityError as exc:
             raise cls.ProjectAlreadyExist() from exc
 
     @classmethod
-    def update(cls, project_id: int, **kwargs) -> None:
+    def update(cls, project: Project, **kwargs) -> None:
         """Edit existing project."""
-        project = cls.get_or_error(project_id)
-
         for key, value in kwargs.items():
             setattr(project, key, value)
 
@@ -63,6 +66,7 @@ class ProjectService:
             'title': project.title,
             'code': project.code,
             'description': project.description,
+            'owner_id': project.owner_id,
             'issues': project.issue_set.select_related('release', 'assignee'),
         }
 

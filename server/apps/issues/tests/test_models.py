@@ -3,16 +3,15 @@ import datetime
 import pytest
 
 from ..enums import IssueStatusEnum
-from .factories import IssueFactory, ReleaseFactory
+from .factories import IssueFactory
 
 
 @pytest.mark.django_db()
 class TestIssueModel:
     """Testing methods of model Issue."""
 
-    def test_save(self, project):
+    def test_save(self, project, release):
         """Check save method with setting 'code'."""
-        release = ReleaseFactory(version='0.1.0')
         issue = IssueFactory(project=project, release=release)
 
         assert issue.title == 'test_issue'
@@ -26,9 +25,8 @@ class TestIssueModel:
         assert issue.logged_time == datetime.timedelta(seconds=0)
         assert issue.code == 'TT-1'
 
-    def test_next_issue(self, project, user, author):
+    def test_next_issue(self, project, user, author, release):
         """Create the second issue."""
-        release = ReleaseFactory(version='0.1.0')
         issue_1 = IssueFactory(project=project, release=release, author=author, assignee=user)
         assert issue_1.code == 'TT-1'
 

@@ -29,3 +29,10 @@ class IsUserProfileOwner(BasePermission):
 
     def has_object_permission(self, request, view, obj):  # noqa: D102
         return obj == request.user
+
+
+class IsProjectOwner(BasePermission):
+    """Check whether user is project owner."""
+
+    def has_object_permission(self, request, view, obj):  # noqa: D102
+        return obj.owner == request.user

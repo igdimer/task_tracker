@@ -512,13 +512,9 @@ class TestIssueUpdateApi:
             'detail': 'You do not have permission to perform this action.',
         }
 
-    def test_admin_access(self, mock_issue_get_or_error, mock_update):
+    def test_admin_access(self, admin_client, mock_issue_get_or_error, mock_update):
         """Response from admin user."""
-        user = UserFactory(email='another@user.com', is_admin=True)
-        client = APIClient()
-        client.force_authenticate(user=user)
-
-        response = client.patch(
+        response = admin_client.patch(
             reverse('issues:update', args=[1]),
             self.default_payload,
             format='json',

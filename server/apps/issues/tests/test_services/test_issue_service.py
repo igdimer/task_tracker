@@ -120,7 +120,7 @@ class TestIssueServiceCreate:
 
     def test_release_not_belong_to_project(self, project, user, author):
         """Provided release does not belong to provided project."""
-        another_project = ProjectFactory(title='another_project')
+        another_project = ProjectFactory(title='another_project', code='AP')
         another_release = ReleaseFactory(project=another_project)
 
         assert Issue.objects.all().count() == 0
@@ -297,7 +297,7 @@ class TestIssueServiceUpdate:
 
     def test_release_not_belong_to_project(self, issue):
         """Provided release does not belong project of issue."""
-        another_project = ProjectFactory(title='another_project')
+        another_project = ProjectFactory(title='another_project', code='AP')
         another_release = ReleaseFactory(project=another_project)
 
         with pytest.raises(IssueService.ReleaseNotBelongToProject):

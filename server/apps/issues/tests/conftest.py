@@ -10,7 +10,7 @@ from .factories import CommentFactory, IssueFactory, ProjectFactory, ReleaseFact
 @pytest.fixture()
 def project():
     """Project fixture."""
-    return ProjectFactory(title='test_project', code='TT')
+    return ProjectFactory()
 
 
 @pytest.fixture()

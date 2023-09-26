@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from server.apps.issues.enums import ReleaseStatusEnum
 from server.apps.issues.services import ProjectService, ReleaseService
 
+from .. import permissions
 from ..utils import inline_serializer
 from . import exceptions
 
@@ -24,7 +25,7 @@ class ProjectCreateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            ProjectService.create(**serializer.validated_data)
+            ProjectService.create(owner=request.user, **serializer.validated_data)
         except ProjectService.ProjectAlreadyExist as exc:
             raise exceptions.ProjectAlreadyExist() from exc
 
@@ -33,6 +34,8 @@ class ProjectCreateApi(APIView):
 
 class ProjectUpdateApi(APIView):
     """API for updating projects."""
+
+    permission_classes = [permissions.IsProjectOwner | permissions.IsAdmin]
 
     class InputSerializer(serializers.Serializer):
         title = serializers.CharField(required=False)
@@ -51,9 +54,14 @@ class ProjectUpdateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            ProjectService.update(project_id=project_id, **serializer.validated_data)
+            project = ProjectService.get_or_error(project_id=project_id)
         except ProjectService.ProjectNotFoundError as exc:
             raise NotFound() from exc
+
+        self.check_object_permissions(request, project)
+
+        try:
+            ProjectService.update(project=project, **serializer.validated_data)
         except ProjectService.ProjectAlreadyExist as exc:
             raise exceptions.ProjectAlreadyExist() from exc
 
@@ -67,6 +75,7 @@ class ProjectDetailApi(APIView):
         title = serializers.CharField()
         code = serializers.CharField()
         description = serializers.CharField()
+        owner_id = serializers.IntegerField()
         issues = serializers.ListField(
             child=inline_serializer(fields={
                 'code': serializers.CharField(),

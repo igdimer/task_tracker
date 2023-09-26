@@ -6,7 +6,8 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from server.apps.issues.services import ProjectService, ReleaseService
-from server.apps.issues.tests.factories import ReleaseFactory
+from server.apps.issues.tests.factories import ProjectFactory, ReleaseFactory
+from server.apps.users.tests.factories import UserFactory
 
 
 @pytest.mark.django_db()
@@ -25,7 +26,7 @@ class TestProjectCreateApi:
         with mock.patch('server.apps.issues.services.ProjectService.create') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_create):
+    def test_success(self, authorized_client, mock_create, user):
         """Success response."""
         response = authorized_client.post(
             reverse('projects:create'),
@@ -39,6 +40,7 @@ class TestProjectCreateApi:
             title='test_title',
             code='test_code',
             description='test_description',
+            owner=user,
         )
 
     def test_unique_fields_error(self, mock_create, authorized_client):
@@ -133,7 +135,7 @@ class TestProjectUpdateApi:
         with mock.patch('server.apps.issues.services.ProjectService.update') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_update):
+    def test_success(self, authorized_client, mock_update, mock_project_get_or_error, project):
         """Success response."""
         response = authorized_client.patch(
             reverse('projects:update', args=[999]),
@@ -141,14 +143,54 @@ class TestProjectUpdateApi:
             format='json',
         )
 
+        mock_project_get_or_error.assert_called_with(project_id=999)
+
         assert response.status_code == 200
         assert response.json() == {}
         mock_update.assert_called_with(
-            project_id=999,
+            project=project,
             title='test_title',
             code='test_code',
             description='test_description',
         )
+
+    def test_permission_denied(
+        self,
+        authorized_client,
+        mock_update,
+        mock_project_get_or_error,
+    ):
+        """Response from non-owner user."""
+        project = ProjectFactory(
+            title='New project',
+            code='NP',
+            owner=UserFactory(email='owner@mail.com'),
+        )
+        mock_project_get_or_error.return_value = project
+        response = authorized_client.patch(
+            reverse('projects:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        mock_project_get_or_error.assert_called_with(project_id=999)
+
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+        mock_update.assert_not_called()
+
+    def test_admin_access(self, admin_client, mock_update, mock_project_get_or_error, project):
+        """Response from admin user."""
+        response = admin_client.patch(
+            reverse('projects:update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
 
     def test_project_not_found(self, mock_update, authorized_client):
         """Project not found."""
@@ -164,7 +206,12 @@ class TestProjectUpdateApi:
             'detail': 'Not found.',
         }
 
-    def test_project_already_exist(self, mock_update, authorized_client):
+    def test_project_already_exist(
+        self,
+        mock_update,
+        authorized_client,
+        mock_project_get_or_error,
+    ):
         """Project with provided fields already exists."""
         mock_update.side_effect = ProjectService.ProjectAlreadyExist()
         response = authorized_client.patch(
@@ -223,9 +270,9 @@ class TestProjectUpdateApi:
             },
         }
 
-    def test_internal_error(self, authorized_client, mock_update):
+    def test_internal_error(self, authorized_client, mock_project_get_or_error):
         """Internal server error."""
-        mock_update.side_effect = Exception()
+        mock_project_get_or_error.side_effect = Exception()
         response = authorized_client.patch(
             reverse('projects:update', args=[999]),
             self.default_payload,
@@ -243,19 +290,20 @@ class TestProjectDetailApi:
     """Testing ProjectDetailApi."""
 
     @pytest.fixture()
-    def mock_get_by_id(self):
+    def mock_get_project_info(self):
         """Mock fixture method get_by_id of ProjectService."""
         with mock.patch(
             'server.apps.issues.services.ProjectService.get_project_info',
         ) as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_get_by_id):
+    def test_success(self, authorized_client, mock_get_project_info):
         """Success response."""
-        mock_get_by_id.return_value = {
+        mock_get_project_info.return_value = {
             'title': 'project_title',
             'code': 'project_code',
             'description': 'project_description',
+            'owner_id': 1,
             'issues': [],
         }
         response = authorized_client.get(reverse('projects:detail', args=[999]))
@@ -265,12 +313,13 @@ class TestProjectDetailApi:
             'title': 'project_title',
             'code': 'project_code',
             'description': 'project_description',
+            'owner_id': 1,
             'issues': [],
         }
 
-    def test_project_not_found(self, authorized_client, mock_get_by_id):
+    def test_project_not_found(self, authorized_client, mock_get_project_info):
         """Project does not exist."""
-        mock_get_by_id.side_effect = ProjectService.ProjectNotFoundError()
+        mock_get_project_info.side_effect = ProjectService.ProjectNotFoundError()
         response = authorized_client.get(reverse('projects:detail', args=[999]))
 
         assert response.status_code == 404
@@ -297,9 +346,9 @@ class TestProjectDetailApi:
             'detail': 'Method "POST" not allowed.',
         }
 
-    def test_internal_error(self, authorized_client, mock_get_by_id):
+    def test_internal_error(self, authorized_client, mock_get_project_info):
         """Internal server error."""
-        mock_get_by_id.side_effect = Exception()
+        mock_get_project_info.side_effect = Exception()
         response = authorized_client.get(reverse('projects:detail', args=[999]))
 
         assert response.status_code == 500

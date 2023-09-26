@@ -14,6 +14,7 @@ class Project(BaseModel):
     title = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=15, unique=True)
     description = models.TextField()
+    owner = models.ForeignKey(User, on_delete=models.RESTRICT)
 
     class Meta:
         db_table = 'projects'
