@@ -200,7 +200,7 @@ class TestUserUpdateApi:
         }
 
     def test_admin_access(self, mock_user_get_or_error, mock_update):
-        """Response from admin user."""
+        """Request from admin user."""
         user = UserFactory(email='admin@user.com', is_admin=True)
         client = APIClient()
         client.force_authenticate(user=user)
@@ -368,8 +368,8 @@ class TestUserCreateApi:
             'detail': 'User with specified email already exists.',
         }
 
-    def test_non_admin_response(self, authorized_client):
-        """Response from non-admin user."""
+    def test_non_admin_request(self, authorized_client):
+        """Request from non-admin user."""
         response = authorized_client.post(
             reverse('users:create'),
             self.default_payload,

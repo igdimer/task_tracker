@@ -513,7 +513,7 @@ class TestIssueUpdateApi:
         }
 
     def test_admin_access(self, admin_client, mock_issue_get_or_error, mock_update):
-        """Response from admin user."""
+        """Request from admin user."""
         response = admin_client.patch(
             reverse('issues:update', args=[1]),
             self.default_payload,

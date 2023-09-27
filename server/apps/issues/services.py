@@ -81,10 +81,13 @@ class ReleaseService:
         """Release already exists."""
 
     @classmethod
-    def get_or_error(cls, release_id: int) -> Release:
+    def get_or_error(cls, release_id: int, join_project: bool = False) -> Release:
         """Get release or raise exception."""
         try:
-            release = Release.objects.get(id=release_id)
+            if join_project:
+                release = Release.objects.select_related('project').get(id=release_id)
+            else:
+                release = Release.objects.get(id=release_id)
         except Release.DoesNotExist:
             raise cls.ReleaseNotFoundError()
 
@@ -93,14 +96,12 @@ class ReleaseService:
     @classmethod
     def create(
         cls,
-        project_id: int,
+        project: Project,
         version: str,
         description: str,
         release_date: datetime.date | None = None,
     ) -> None:
         """Create release."""
-        project = ProjectService.get_or_error(project_id=project_id)
-
         try:
             Release.objects.create(
                 project=project,
@@ -117,10 +118,8 @@ class ReleaseService:
         return cls.get_or_error(release_id=release_id)
 
     @classmethod
-    def update(cls, release_id: int, **kwargs) -> None:
+    def update(cls, release: Release, **kwargs) -> None:
         """Edit existing release."""
-        release = cls.get_or_error(release_id=release_id)
-
         for key, value in kwargs.items():
             setattr(release, key, value)
 

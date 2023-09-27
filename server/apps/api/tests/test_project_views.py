@@ -160,7 +160,7 @@ class TestProjectUpdateApi:
         mock_update,
         mock_project_get_or_error,
     ):
-        """Response from non-owner user."""
+        """Request from non-owner user."""
         project = ProjectFactory(
             title='New project',
             code='NP',
@@ -181,14 +181,22 @@ class TestProjectUpdateApi:
         }
         mock_update.assert_not_called()
 
-    def test_admin_access(self, admin_client, mock_update, mock_project_get_or_error, project):
-        """Response from admin user."""
+    def test_admin_access(self, admin_client, mock_update, mock_project_get_or_error):
+        """Request from admin user."""
+        project = ProjectFactory(
+            title='New project',
+            code='NP',
+            owner=UserFactory(email='owner@mail.com'),
+        )
+        mock_project_get_or_error.return_value = project
+
         response = admin_client.patch(
             reverse('projects:update', args=[999]),
             self.default_payload,
             format='json',
         )
 
+        mock_project_get_or_error.assert_called_with(project_id=999)
         assert response.status_code == 200
         assert response.json() == {}
 
@@ -373,7 +381,7 @@ class TestReleaseCreateApi:
         with mock.patch('server.apps.issues.services.ReleaseService.create') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_create):
+    def test_success(self, authorized_client, mock_create, mock_project_get_or_error, project):
         """Success response."""
         response = authorized_client.post(
             reverse('projects:release_create', args=[999]),
@@ -381,16 +389,23 @@ class TestReleaseCreateApi:
             format='json',
         )
 
+        mock_project_get_or_error.assert_called_with(project_id=999)
         assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
-            project_id=999,
+            project=project,
             version='0.1.0',
             release_date=datetime.date(2024, 1, 10),
             description='New_Release',
         )
 
-    def test_create_no_release_date(self, authorized_client, mock_create):
+    def test_create_no_release_date(
+        self,
+        authorized_client,
+        mock_create,
+        mock_project_get_or_error,
+        project,
+    ):
         """Create with no provided release date."""
         payload = {
             'version': '0.1.0',
@@ -403,17 +418,18 @@ class TestReleaseCreateApi:
             format='json',
         )
 
+        mock_project_get_or_error.assert_called_with(project_id=999)
         assert response.status_code == 201
         assert response.json() == {}
         mock_create.assert_called_with(
-            project_id=999,
+            project=project,
             version='0.1.0',
             description='New_Release',
         )
 
-    def test_project_not_found(self, authorized_client, mock_create):
+    def test_project_not_found(self, authorized_client, mock_project_get_or_error):
         """Project was not found."""
-        mock_create.side_effect = ProjectService.ProjectNotFoundError()
+        mock_project_get_or_error.side_effect = ProjectService.ProjectNotFoundError()
         response = authorized_client.post(
             reverse('projects:release_create', args=[999]),
             self.default_payload,
@@ -425,7 +441,12 @@ class TestReleaseCreateApi:
             'detail': 'Not found.',
         }
 
-    def test_release_already_exists(self, authorized_client, mock_create):
+    def test_release_already_exists(
+        self,
+        authorized_client,
+        mock_create,
+        mock_project_get_or_error,
+    ):
         """Project has release with the same version."""
         mock_create.side_effect = ReleaseService.ReleaseAlreadyExist()
         response = authorized_client.post(
@@ -434,10 +455,66 @@ class TestReleaseCreateApi:
             format='json',
         )
 
+        mock_project_get_or_error.assert_called_with(project_id=999)
         assert response.status_code == 409
         assert response.json() == {
             'detail': 'Project already has release with the same version.',
         }
+
+    def test_permission_denied(
+        self,
+        authorized_client,
+        mock_create,
+        mock_project_get_or_error,
+    ):
+        """Request from non-owner of project user."""
+        project = ProjectFactory(
+            title='New project',
+            code='NP',
+            owner=UserFactory(email='owner@mail.com'),
+        )
+        mock_project_get_or_error.return_value = project
+        response = authorized_client.post(
+            reverse('projects:release_create', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        mock_project_get_or_error.assert_called_with(project_id=999)
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+        mock_create.assert_not_called()
+
+    def test_admin_access(
+        self,
+        admin_client,
+        mock_create,
+        mock_project_get_or_error,
+    ):
+        """Request from admin user."""
+        project = ProjectFactory(
+            title='New project',
+            code='NP',
+            owner=UserFactory(email='owner@mail.com'),
+        )
+        mock_project_get_or_error.return_value = project
+        response = admin_client.post(
+            reverse('projects:release_create', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        mock_project_get_or_error.assert_called_with(project_id=999)
+        assert response.status_code == 201
+        assert response.json() == {}
+        mock_create.assert_called_with(
+            project=project,
+            version='0.1.0',
+            release_date=datetime.date(2024, 1, 10),
+            description='New_Release',
+        )
 
     def test_auth_fail(self):
         """Non authenticated response."""
@@ -466,7 +543,7 @@ class TestReleaseCreateApi:
             'detail': 'Method "GET" not allowed.',
         }
 
-    def test_internal_error(self, authorized_client, mock_create):
+    def test_internal_error(self, authorized_client, mock_create, mock_project_get_or_error):
         """Internal server error."""
         mock_create.side_effect = Exception()
         response = authorized_client.post(
@@ -557,12 +634,21 @@ class TestReleaseUpdateApi:
     }
 
     @pytest.fixture()
+    def mock_release_get_or_error(self, release):
+        """Mock fixture method get_or_error of ReleaseService."""
+        with mock.patch(
+            'server.apps.issues.services.ReleaseService.get_or_error',
+            return_value=release,
+        ) as mock_method:
+            yield mock_method
+
+    @pytest.fixture()
     def mock_update(self):
         """Mock fixture method update of ReleaseService."""
         with mock.patch('server.apps.issues.services.ReleaseService.update') as mock_method:
             yield mock_method
 
-    def test_success(self, authorized_client, mock_update):
+    def test_success(self, authorized_client, mock_update, mock_release_get_or_error, release):
         """Success response."""
         response = authorized_client.patch(
             reverse('projects:release_update', args=[999]),
@@ -570,17 +656,23 @@ class TestReleaseUpdateApi:
             format='json',
         )
 
+        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
         assert response.status_code == 200
         assert response.json() == {}
         mock_update.assert_called_with(
-            release_id=999,
+            release=release,
             version='0.1.0',
             release_date=datetime.date(2024, 1, 10),
             description='New_Release',
             status='released',
         )
 
-    def test_release_already_exists(self, mock_update, authorized_client):
+    def test_release_already_exists(
+        self,
+        mock_update,
+        authorized_client,
+        mock_release_get_or_error,
+    ):
         """Project has release with the same version."""
         mock_update.side_effect = ReleaseService.ReleaseAlreadyExist()
         response = authorized_client.patch(
@@ -589,14 +681,15 @@ class TestReleaseUpdateApi:
             format='json',
         )
 
+        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
         assert response.status_code == 409
         assert response.json() == {
             'detail': 'Project already has release with the same version.',
         }
 
-    def test_release_not_found(self, authorized_client, mock_update):
+    def test_release_not_found(self, authorized_client, mock_release_get_or_error):
         """Release not found."""
-        mock_update.side_effect = ReleaseService.ReleaseNotFoundError()
+        mock_release_get_or_error.side_effect = ReleaseService.ReleaseNotFoundError()
         response = authorized_client.patch(
             reverse('projects:release_update', args=[999]),
             self.default_payload,
@@ -607,6 +700,50 @@ class TestReleaseUpdateApi:
         assert response.json() == {
             'detail': 'Not found.',
         }
+
+    def test_permission_denied(self, mock_update, mock_release_get_or_error):
+        """Request from non-owner of project."""
+        non_owner = UserFactory(email='no_owner@email.com')
+        client = APIClient()
+        client.force_authenticate(non_owner)
+        response = client.patch(
+            reverse('projects:release_update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+        mock_update.assert_not_called()
+
+    def test_admin_access(self, admin_client, mock_update, mock_release_get_or_error):
+        """Request from non-owner of project."""
+        project = ProjectFactory(
+            title='New project',
+            code='NP',
+            owner=UserFactory(email='owner@mail.com'),
+        )
+        release = ReleaseFactory(project=project)
+        mock_release_get_or_error.return_value = release
+        response = admin_client.patch(
+            reverse('projects:release_update', args=[999]),
+            self.default_payload,
+            format='json',
+        )
+
+        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
+        assert response.status_code == 200
+        assert response.json() == {}
+        mock_update.assert_called_with(
+            release=release,
+            version='0.1.0',
+            release_date=datetime.date(2024, 1, 10),
+            description='New_Release',
+            status='released',
+        )
 
     def test_auth_fail(self):
         """Non authenticated response."""
@@ -653,7 +790,7 @@ class TestReleaseUpdateApi:
             },
         }
 
-    def test_internal_error(self, authorized_client, mock_update):
+    def test_internal_error(self, authorized_client, mock_update, mock_release_get_or_error):
         """Internal server error."""
         mock_update.side_effect = Exception()
         response = authorized_client.patch(

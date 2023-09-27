@@ -36,7 +36,7 @@ class TestReleaseServiceCreate:
         """Success creation."""
         assert Release.objects.all().count() == 0
         ReleaseService.create(
-            project_id=project.id,
+            project=project,
             description='New Release',
             release_date=release_date,
             version='1.0.0',
@@ -52,7 +52,7 @@ class TestReleaseServiceCreate:
         """Project already has release with the same version."""
         with pytest.raises(ReleaseService.ReleaseAlreadyExist):
             ReleaseService.create(
-                project_id=project.id,
+                project=project,
                 version='0.1.0',
                 description='New Release',
                 release_date=datetime.date(2024, 3, 20),
@@ -66,7 +66,7 @@ class TestReleaseServiceUpdate:
     def test_success_updating(self, release):
         """Success updating."""
         ReleaseService.update(
-            release_id=release.id,
+            release=release,
             version='3.0.0',
             description='New Release with new features.',
             release_date=datetime.date(2024, 3, 20),
@@ -79,16 +79,11 @@ class TestReleaseServiceUpdate:
         assert release.release_date == datetime.date(2024, 3, 20)
         assert release.status == 'released'
 
-    def test_release_not_found(self):
-        """Updating release does not exist."""
-        with pytest.raises(ReleaseService.ReleaseNotFoundError):
-            ReleaseService.update(release_id=999)
-
     def test_release_already_exist(self, release, project):
         """Project already has release with the same version."""
         ReleaseFactory(project=project, version='2.0.0')
         with pytest.raises(ReleaseService.ReleaseAlreadyExist):
             ReleaseService.update(
-                release_id=release.id,
+                release=release,
                 version='2.0.0',
             )

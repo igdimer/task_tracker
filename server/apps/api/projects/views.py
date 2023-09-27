@@ -99,6 +99,8 @@ class ProjectDetailApi(APIView):
 class ReleaseCreateApi(APIView):
     """API for creating release."""
 
+    permission_classes = [permissions.IsProjectOwner | permissions.IsAdmin]
+
     class InputSerializer(serializers.Serializer):
         version = serializers.CharField()
         release_date = serializers.DateField(required=False)
@@ -109,11 +111,16 @@ class ReleaseCreateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            ReleaseService.create(project_id=project_id, **serializer.validated_data)
-        except ReleaseService.ReleaseAlreadyExist as exc:
-            raise exceptions.ReleaseAlreadyExist() from exc
+            project = ProjectService.get_or_error(project_id=project_id)
         except ProjectService.ProjectNotFoundError as exc:
             raise NotFound() from exc
+
+        self.check_object_permissions(request, project)
+
+        try:
+            ReleaseService.create(project=project, **serializer.validated_data)
+        except ReleaseService.ReleaseAlreadyExist as exc:
+            raise exceptions.ReleaseAlreadyExist() from exc
 
         return Response({}, status=status.HTTP_201_CREATED)
 
@@ -140,6 +147,8 @@ class ReleaseDetailApi(APIView):
 class ReleaseUpdateApi(APIView):
     """API for updating projects."""
 
+    permission_classes = [permissions.IsProjectOwner | permissions.IsAdmin]
+
     class InputSerializer(serializers.Serializer):
         version = serializers.CharField(required=False)
         description = serializers.CharField(required=False)
@@ -158,9 +167,14 @@ class ReleaseUpdateApi(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            ReleaseService.update(release_id=release_id, **serializer.validated_data)
+            release = ReleaseService.get_or_error(release_id=release_id, join_project=True)
         except ReleaseService.ReleaseNotFoundError as exc:
             raise NotFound() from exc
+
+        self.check_object_permissions(request, release.project)
+
+        try:
+            ReleaseService.update(release=release, **serializer.validated_data)
         except ReleaseService.ReleaseAlreadyExist as exc:
             raise exceptions.ReleaseAlreadyExist() from exc
 

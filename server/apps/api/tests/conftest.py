@@ -3,7 +3,8 @@ from unittest import mock
 import pytest
 from rest_framework.test import APIClient
 
-from server.apps.issues.tests.factories import CommentFactory, IssueFactory, ProjectFactory
+from server.apps.issues.tests.factories import (CommentFactory, IssueFactory, ProjectFactory,
+                                                ReleaseFactory)
 from server.apps.users.tests.factories import UserFactory
 
 
@@ -23,6 +24,12 @@ def issue(user):
 def project(user):
     """Project fixture."""
     return ProjectFactory(owner=user)
+
+
+@pytest.fixture()
+def release(project):
+    """Release mock-fixture."""
+    return ReleaseFactory(project=project)
 
 
 @pytest.fixture()
