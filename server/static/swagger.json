@@ -1408,19 +1408,14 @@
         }
       }
     },
-    "/issues/{issue_id}/comments/{comment_id}": {
+    "/issues/comments/{comment_id}": {
       "get": {
         "tags": [
           "issues"
         ],
         "summary": "Get comment",
-        "description": "Takes path parameters: issue_id and comment_id.",
+        "description": "Takes path parameter comment_id.",
         "parameters": [
-          {
-            "name": "issue_id",
-            "in": "path",
-            "required": true
-          },
           {
             "name": "comment_id",
             "in": "path",
@@ -1449,7 +1444,7 @@
             }
           },
           "404": {
-            "description": "404 - Issue or comment are not found",
+            "description": "404 - Comment is not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1471,19 +1466,14 @@
         }
       }
     },
-    "/issues/{issue_id}/comments/{comment_id}/update": {
+    "/issues/comments/{comment_id}/update": {
       "patch": {
         "tags": [
           "issues"
         ],
         "summary": "Edit comment",
-        "description": "Takes two path parameters issue_id, comment_id and payload.",
+        "description": "Takes path parameter comment_id and payload.",
         "parameters": [
-          {
-            "name": "issue_id",
-            "in": "path",
-            "required": true
-          },
           {
             "name": "comment_id",
             "in": "path",
@@ -1547,7 +1537,7 @@
             }
           },
           "404": {
-            "description": "404 - Issue or comment are not found",
+            "description": "404 - Comment is not found",
             "content": {
               "application/json": {
                 "schema": {

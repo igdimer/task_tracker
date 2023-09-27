@@ -657,7 +657,7 @@ class TestCommentDetailApi:
         comment = CommentFactory(author=UserFactory(email='author@mail.com'))
         mock_get_or_error.return_value = comment
 
-        response = authorized_client.get(reverse('issues:comments_detail', args=[99, comment.id]))
+        response = authorized_client.get(reverse('issues:comments_detail', args=[comment.id]))
 
         assert response.status_code == 200
         assert response.json() == {
@@ -666,14 +666,10 @@ class TestCommentDetailApi:
             'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
         }
 
-    @pytest.mark.parametrize('exc_class', [
-        IssueService.IssueNotFoundError,
-        CommentService.CommentNotFoundError,
-    ])
-    def test_not_found(self, authorized_client, exc_class, mock_get_or_error):
+    def test_not_found(self, authorized_client, mock_get_or_error):
         """Issue or comment not found."""
-        mock_get_or_error.side_effect = exc_class()
-        response = authorized_client.get(reverse('issues:comments_detail', args=[99, 55]))
+        mock_get_or_error.side_effect = CommentService.CommentNotFoundError()
+        response = authorized_client.get(reverse('issues:comments_detail', args=[55]))
 
         assert response.status_code == 404
         assert response.json() == {
@@ -683,7 +679,7 @@ class TestCommentDetailApi:
     def test_auth_fail(self):
         """Non authenticated response."""
         client = APIClient()
-        response = client.get(reverse('issues:comments_detail', args=[99, 55]))
+        response = client.get(reverse('issues:comments_detail', args=[55]))
 
         assert response.status_code == 401
         assert response.json() == {
@@ -692,7 +688,7 @@ class TestCommentDetailApi:
 
     def test_method_not_allowed(self, authorized_client):
         """Incorrect HTTP method."""
-        response = authorized_client.post(reverse('issues:comments_detail', args=[99, 55]))
+        response = authorized_client.post(reverse('issues:comments_detail', args=[55]))
 
         assert response.status_code == 405
         assert response.json() == {
@@ -702,7 +698,7 @@ class TestCommentDetailApi:
     def test_internal_error(self, authorized_client, mock_get_or_error):
         """Internal server error."""
         mock_get_or_error.side_effect = Exception()
-        response = authorized_client.get(reverse('issues:comments_detail', args=[99, 55]))
+        response = authorized_client.get(reverse('issues:comments_detail', args=[55]))
 
         assert response.status_code == 500
         assert response.json() == {
@@ -801,30 +797,25 @@ class TestCommentUpdateApi:
     def test_success(self, authorized_client, mock_update, mock_comment_get_or_error, comment):
         """Successful updating comment."""
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[10, 20]),
+            reverse('issues:comments_update', args=[20]),
             self.default_payload,
             format='json',
         )
 
         assert response.status_code == 200
         assert response.json() == {}
-        mock_comment_get_or_error.assert_called_with(issue_id=10, comment_id=20)
+        mock_comment_get_or_error.assert_called_with(comment_id=20)
         mock_update.assert_called_with(comment=comment, text='corrected_text')
 
-    @pytest.mark.parametrize('exc_class', [
-        IssueService.IssueNotFoundError,
-        CommentService.CommentNotFoundError,
-    ])
     def test_comment_or_issue_not_found(
         self,
         authorized_client,
         mock_comment_get_or_error,
-        exc_class,
     ):
         """Issue or comment not found."""
-        mock_comment_get_or_error.side_effect = exc_class()
+        mock_comment_get_or_error.side_effect = CommentService.CommentNotFoundError()
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[10, 20]),
+            reverse('issues:comments_update', args=[20]),
             self.default_payload,
             format='json',
         )
@@ -838,7 +829,7 @@ class TestCommentUpdateApi:
         """Non authenticated response."""
         client = APIClient()
         response = client.post(
-            reverse('issues:comments_update', args=[10, 20]),
+            reverse('issues:comments_update', args=[20]),
             self.default_payload,
             format='json',
         )
@@ -854,7 +845,7 @@ class TestCommentUpdateApi:
             'wrong_key': 'value',
         }
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[10, 20]),
+            reverse('issues:comments_update', args=[20]),
             payload,
             format='json',
         )
@@ -873,7 +864,7 @@ class TestCommentUpdateApi:
         client.force_authenticate(user=user)
 
         response = client.patch(
-            reverse('issues:comments_update', args=[1, 10]),
+            reverse('issues:comments_update', args=[10]),
             self.default_payload,
             format='json',
         )
@@ -890,7 +881,7 @@ class TestCommentUpdateApi:
         client.force_authenticate(user=user)
 
         response = client.patch(
-            reverse('issues:comments_update', args=[1, 10]),
+            reverse('issues:comments_update', args=[10]),
             self.default_payload,
             format='json',
         )
@@ -900,7 +891,7 @@ class TestCommentUpdateApi:
 
     def test_method_not_allowed(self, authorized_client):
         """Incorrect HTTP method."""
-        response = authorized_client.get(reverse('issues:comments_update', args=[10, 20]))
+        response = authorized_client.get(reverse('issues:comments_update', args=[20]))
 
         assert response.status_code == 405
         assert response.json() == {
@@ -911,7 +902,7 @@ class TestCommentUpdateApi:
         """Internal server error."""
         mock_comment_get_or_error.side_effect = Exception()
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[1, 10]),
+            reverse('issues:comments_update', args=[10]),
             self.default_payload,
             format='json',
         )

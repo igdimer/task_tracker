@@ -281,12 +281,10 @@ class CommentService:
             )
 
     @classmethod
-    def get_or_error(cls, issue_id: int, comment_id: int) -> Comment:
+    def get_or_error(cls, comment_id: int) -> Comment:
         """Get comment by id."""
-        issue = IssueService.get_or_error(issue_id)
-
         try:
-            comment = Comment.objects.get(issue=issue, id=comment_id)
+            comment = Comment.objects.get(id=comment_id)
         except Comment.DoesNotExist:
             raise cls.CommentNotFoundError()
 
