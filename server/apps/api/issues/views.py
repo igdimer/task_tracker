@@ -12,7 +12,6 @@ from server.apps.issues.services import (CommentService, IssueService, ProjectSe
 from server.apps.users.services import UserService
 
 from .. import permissions
-from . import exceptions
 from .serializers import IssueOutputSerializer
 
 
@@ -39,8 +38,6 @@ class IssueCreateApi(APIView):
             UserService.UserNotFoundError,
         ) as exc:
             raise NotFound() from exc
-        except IssueService.ReleaseNotBelongToProject as exc:
-            raise exceptions.ReleaseNotBelongToProject() from exc
 
         return Response({}, status=status.HTTP_201_CREATED)
 
@@ -114,8 +111,6 @@ class IssueUpdateApi(APIView):
             IssueService.update(issue=issue, user=request.user, **serializer.validated_data)
         except (UserService.UserNotFoundError, ReleaseService.ReleaseNotFoundError) as exc:
             raise NotFound() from exc
-        except IssueService.ReleaseNotBelongToProject as exc:
-            raise exceptions.ReleaseNotBelongToProject() from exc
 
         return Response({})
 
@@ -150,9 +145,9 @@ class CommentDetailApi(APIView):
         author_id = serializers.IntegerField()
         created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
 
-    def get(self, request: Request, comment_id: int) -> Response:   # noqa: D102
+    def get(self, request: Request, issue_id: int, comment_id: int) -> Response:   # noqa: D102
         try:
-            comment = CommentService.get_or_error(comment_id=comment_id)
+            comment = CommentService.get_or_error(comment_id=comment_id, issue_id=issue_id)
         except CommentService.CommentNotFoundError as exc:
             raise NotFound() from exc
 
@@ -168,12 +163,12 @@ class CommentUpdateApi(APIView):
     class InputSerializer(serializers.Serializer):
         text = serializers.CharField()
 
-    def patch(self, request: Request, comment_id: int) -> Response:   # noqa: D102
+    def patch(self, request: Request, comment_id: int, issue_id: int) -> Response:   # noqa: D102
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
-            comment = CommentService.get_or_error(comment_id=comment_id)
+            comment = CommentService.get_or_error(comment_id=comment_id, issue_id=issue_id)
         except CommentService.CommentNotFoundError as exc:
             raise NotFound() from exc
 

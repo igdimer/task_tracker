@@ -81,13 +81,16 @@ class ReleaseService:
         """Release already exists."""
 
     @classmethod
-    def get_or_error(cls, release_id: int, join_project: bool = False) -> Release:
+    def get_or_error(cls, project_id: int, release_id: int, join_project: bool = False) -> Release:
         """Get release or raise exception."""
         try:
             if join_project:
-                release = Release.objects.select_related('project').get(id=release_id)
+                release = Release.objects.select_related('project').get(
+                    id=release_id,
+                    project_id=project_id,
+                )
             else:
-                release = Release.objects.get(id=release_id)
+                release = Release.objects.get(id=release_id, project_id=project_id)
         except Release.DoesNotExist:
             raise cls.ReleaseNotFoundError()
 
@@ -113,9 +116,9 @@ class ReleaseService:
             raise cls.ReleaseAlreadyExist() from exc
 
     @classmethod
-    def get_by_id(cls, release_id: int) -> Release:
+    def get_by_id(cls, project_id: int, release_id: int) -> Release:
         """Get release by id."""
-        return cls.get_or_error(release_id=release_id)
+        return cls.get_or_error(release_id=release_id, project_id=project_id)
 
     @classmethod
     def update(cls, release: Release, **kwargs) -> None:
@@ -134,15 +137,6 @@ class IssueService:
 
     class IssueNotFoundError(BaseServiceError):
         """Issue does not exist."""
-
-    class ReleaseNotBelongToProject(BaseServiceError):
-        """Release does not belong provided project."""
-
-    @classmethod
-    def _check_release_belong_to_project(cls, release: Release, project_id: int) -> None:
-        """Check whether release belongs to provided project."""
-        if release.project_id != project_id:
-            raise cls.ReleaseNotBelongToProject()
 
     @classmethod
     def get_or_error(cls, issue_id: int) -> Issue:
@@ -179,8 +173,7 @@ class IssueService:
         project = ProjectService.get_or_error(project_id=project_id)
         assignee = UserService.get_or_error(user_id=assignee_id)
         if release_id is not None:
-            release = ReleaseService.get_or_error(release_id=release_id)
-            cls._check_release_belong_to_project(release, project_id)
+            ReleaseService.get_or_error(release_id=release_id, project_id=project_id)
 
         issue = Issue.objects.create(
             project=project,
@@ -216,8 +209,7 @@ class IssueService:
         if 'release_id' in kwargs:
             release_id = kwargs['release_id']
             if release_id is not None:
-                release = ReleaseService.get_or_error(release_id)
-                cls._check_release_belong_to_project(release, issue.project_id)
+                ReleaseService.get_or_error(release_id=release_id, project_id=issue.project_id)
 
         assignee_id = kwargs.pop('assignee_id', None)
         if assignee_id is not None:
@@ -281,10 +273,10 @@ class CommentService:
             )
 
     @classmethod
-    def get_or_error(cls, comment_id: int) -> Comment:
+    def get_or_error(cls, comment_id: int, issue_id: int) -> Comment:
         """Get comment by id."""
         try:
-            comment = Comment.objects.get(id=comment_id)
+            comment = Comment.objects.get(id=comment_id, issue_id=issue_id)
         except Comment.DoesNotExist:
             raise cls.CommentNotFoundError()
 

@@ -737,14 +737,19 @@
         }
       }
     },
-    "/projects/releases/{release_id}": {
+    "/projects/{project_id}/releases/{release_id}": {
       "get": {
         "tags": [
           "projects"
         ],
         "summary": "Get release",
-        "description": "Takes path parameter release_id.",
+        "description": "Takes path parameters project_id and release_id.",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true
+          },
           {
             "name": "release_id",
             "in": "path",
@@ -817,14 +822,19 @@
         }
       }
     },
-    "/projects/releases/{release_id}/update": {
+    "/projects/{project_id}/releases/{release_id}/update": {
       "patch": {
         "tags": [
           "projects"
         ],
         "summary": "Edit release",
-        "description": "Takes path parameter release_id and payload.",
+        "description": "Takes path parameters project_id, release_id and payload.",
         "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true
+          },
           {
             "name": "release_id",
             "in": "path",
@@ -1408,14 +1418,19 @@
         }
       }
     },
-    "/issues/comments/{comment_id}": {
+    "/issues/{issue_id}/comments/{comment_id}": {
       "get": {
         "tags": [
           "issues"
         ],
         "summary": "Get comment",
-        "description": "Takes path parameter comment_id.",
+        "description": "Takes path parameter issue_id and comment_id.",
         "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          },
           {
             "name": "comment_id",
             "in": "path",
@@ -1466,14 +1481,19 @@
         }
       }
     },
-    "/issues/comments/{comment_id}/update": {
+    "/issues/{issue_id}/comments/{comment_id}/update": {
       "patch": {
         "tags": [
           "issues"
         ],
         "summary": "Edit comment",
-        "description": "Takes path parameter comment_id and payload.",
+        "description": "Takes path parameter issue_id, comment_id and payload.",
         "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          },
           {
             "name": "comment_id",
             "in": "path",

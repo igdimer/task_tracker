@@ -571,7 +571,7 @@ class TestReleaseDetailApi:
     def test_success(self, authorized_client, mock_get_by_id):
         """Success response."""
         mock_get_by_id.return_value = ReleaseFactory(version='0.1.0')
-        response = authorized_client.get(reverse('projects:release_detail', args=[999]))
+        response = authorized_client.get(reverse('projects:release_detail', args=[999, 888]))
 
         assert response.status_code == 200
         assert response.json() == {
@@ -580,12 +580,12 @@ class TestReleaseDetailApi:
             'release_date': '2024-01-01',
             'status': 'unreleased',
         }
-        mock_get_by_id.assert_called_with(release_id=999)
+        mock_get_by_id.assert_called_with(release_id=888, project_id=999)
 
     def test_release_not_found(self, authorized_client, mock_get_by_id):
         """Release does not exist."""
         mock_get_by_id.side_effect = ReleaseService.ReleaseNotFoundError()
-        response = authorized_client.get(reverse('projects:release_detail', args=[999]))
+        response = authorized_client.get(reverse('projects:release_detail', args=[999, 888]))
 
         assert response.status_code == 404
         assert response.json() == {
@@ -595,7 +595,7 @@ class TestReleaseDetailApi:
     def test_auth_fail(self):
         """Non authenticated response."""
         client = APIClient()
-        response = client.get(reverse('projects:release_detail', args=[999]))
+        response = client.get(reverse('projects:release_detail', args=[999, 888]))
 
         assert response.status_code == 401
         assert response.json() == {
@@ -604,7 +604,7 @@ class TestReleaseDetailApi:
 
     def test_method_not_allowed(self, authorized_client):
         """Incorrect HTTP method."""
-        response = authorized_client.post(reverse('projects:release_detail', args=[999]))
+        response = authorized_client.post(reverse('projects:release_detail', args=[999, 888]))
 
         assert response.status_code == 405
         assert response.json() == {
@@ -614,7 +614,7 @@ class TestReleaseDetailApi:
     def test_internal_error(self, authorized_client, mock_get_by_id):
         """Internal server error."""
         mock_get_by_id.side_effect = Exception()
-        response = authorized_client.get(reverse('projects:release_detail', args=[999]))
+        response = authorized_client.get(reverse('projects:release_detail', args=[999, 888]))
 
         assert response.status_code == 500
         assert response.json() == {
@@ -651,12 +651,16 @@ class TestReleaseUpdateApi:
     def test_success(self, authorized_client, mock_update, mock_release_get_or_error, release):
         """Success response."""
         response = authorized_client.patch(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )
 
-        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
+        mock_release_get_or_error.assert_called_with(
+            release_id=888,
+            project_id=999,
+            join_project=True,
+        )
         assert response.status_code == 200
         assert response.json() == {}
         mock_update.assert_called_with(
@@ -676,12 +680,16 @@ class TestReleaseUpdateApi:
         """Project has release with the same version."""
         mock_update.side_effect = ReleaseService.ReleaseAlreadyExist()
         response = authorized_client.patch(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )
 
-        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
+        mock_release_get_or_error.assert_called_with(
+            release_id=888,
+            project_id=999,
+            join_project=True,
+        )
         assert response.status_code == 409
         assert response.json() == {
             'detail': 'Project already has release with the same version.',
@@ -691,7 +699,7 @@ class TestReleaseUpdateApi:
         """Release not found."""
         mock_release_get_or_error.side_effect = ReleaseService.ReleaseNotFoundError()
         response = authorized_client.patch(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )
@@ -707,12 +715,16 @@ class TestReleaseUpdateApi:
         client = APIClient()
         client.force_authenticate(non_owner)
         response = client.patch(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )
 
-        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
+        mock_release_get_or_error.assert_called_with(
+            release_id=888,
+            project_id=999,
+            join_project=True,
+        )
         assert response.status_code == 403
         assert response.json() == {
             'detail': 'You do not have permission to perform this action.',
@@ -729,12 +741,16 @@ class TestReleaseUpdateApi:
         release = ReleaseFactory(project=project)
         mock_release_get_or_error.return_value = release
         response = admin_client.patch(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )
 
-        mock_release_get_or_error.assert_called_with(release_id=999, join_project=True)
+        mock_release_get_or_error.assert_called_with(
+            release_id=888,
+            project_id=999,
+            join_project=True,
+        )
         assert response.status_code == 200
         assert response.json() == {}
         mock_update.assert_called_with(
@@ -749,7 +765,7 @@ class TestReleaseUpdateApi:
         """Non authenticated response."""
         client = APIClient()
         response = client.post(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )
@@ -762,7 +778,7 @@ class TestReleaseUpdateApi:
     def test_method_not_allowed(self, authorized_client):
         """Incorrect HTTP method."""
         response = authorized_client.get(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )
@@ -778,7 +794,7 @@ class TestReleaseUpdateApi:
             'wrong_key': 'value',
         }
         response = authorized_client.patch(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             payload,
             format='json',
         )
@@ -794,7 +810,7 @@ class TestReleaseUpdateApi:
         """Internal server error."""
         mock_update.side_effect = Exception()
         response = authorized_client.patch(
-            reverse('projects:release_update', args=[999]),
+            reverse('projects:release_update', args=[999, 888]),
             self.default_payload,
             format='json',
         )

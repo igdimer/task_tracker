@@ -75,13 +75,16 @@ class TestCommentServiceGetById:
 
     def test_success(self, comment):
         """Success getting comment."""
-        result_comment = CommentService.get_or_error(comment_id=comment.id)
+        result_comment = CommentService.get_or_error(
+            comment_id=comment.id,
+            issue_id=comment.issue_id,
+        )
         assert result_comment.text == 'test_text'
 
     def test_comment_not_found(self, issue):
         """Comment not found."""
         with pytest.raises(CommentService.CommentNotFoundError):
-            CommentService.get_or_error(comment_id=999)
+            CommentService.get_or_error(comment_id=999, issue_id=888)
 
 
 @pytest.mark.django_db()

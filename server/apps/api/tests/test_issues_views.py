@@ -95,20 +95,6 @@ class TestIssueCreateApi:
             'detail': 'Not found.',
         }
 
-    def test_release_not_belong_to_project(self, mock_create, authorized_client):
-        """Provided release_id does not exist."""
-        mock_create.side_effect = IssueService.ReleaseNotBelongToProject()
-        response = authorized_client.post(
-            reverse('issues:create'),
-            self.default_payload,
-            format='json',
-        )
-
-        assert response.status_code == 400
-        assert response.json() == {
-            'detail': 'Release does not belong provided project.',
-        }
-
     def test_auth_fail(self):
         """Non authenticated response."""
         client = APIClient()
@@ -374,25 +360,6 @@ class TestIssueUpdateApi:
             status='resolved',
         )
 
-    def test_release_not_belong_to_project(
-        self,
-        mock_update,
-        authorized_client,
-        mock_issue_get_or_error,
-    ):
-        """Provided release_id does not exist."""
-        mock_update.side_effect = IssueService.ReleaseNotBelongToProject()
-        response = authorized_client.patch(
-            reverse('issues:update', args=[999]),
-            self.default_payload,
-            format='json',
-        )
-
-        assert response.status_code == 400
-        assert response.json() == {
-            'detail': 'Release does not belong provided project.',
-        }
-
     def test_auth_fail(self):
         """Non authenticated response."""
         client = APIClient()
@@ -657,7 +624,9 @@ class TestCommentDetailApi:
         comment = CommentFactory(author=UserFactory(email='author@mail.com'))
         mock_get_or_error.return_value = comment
 
-        response = authorized_client.get(reverse('issues:comments_detail', args=[comment.id]))
+        response = authorized_client.get(
+            reverse('issues:comments_detail', args=[comment.issue_id, comment.id]),
+        )
 
         assert response.status_code == 200
         assert response.json() == {
@@ -669,7 +638,7 @@ class TestCommentDetailApi:
     def test_not_found(self, authorized_client, mock_get_or_error):
         """Issue or comment not found."""
         mock_get_or_error.side_effect = CommentService.CommentNotFoundError()
-        response = authorized_client.get(reverse('issues:comments_detail', args=[55]))
+        response = authorized_client.get(reverse('issues:comments_detail', args=[22, 55]))
 
         assert response.status_code == 404
         assert response.json() == {
@@ -679,7 +648,7 @@ class TestCommentDetailApi:
     def test_auth_fail(self):
         """Non authenticated response."""
         client = APIClient()
-        response = client.get(reverse('issues:comments_detail', args=[55]))
+        response = client.get(reverse('issues:comments_detail', args=[22, 55]))
 
         assert response.status_code == 401
         assert response.json() == {
@@ -688,7 +657,7 @@ class TestCommentDetailApi:
 
     def test_method_not_allowed(self, authorized_client):
         """Incorrect HTTP method."""
-        response = authorized_client.post(reverse('issues:comments_detail', args=[55]))
+        response = authorized_client.post(reverse('issues:comments_detail', args=[22, 55]))
 
         assert response.status_code == 405
         assert response.json() == {
@@ -698,7 +667,7 @@ class TestCommentDetailApi:
     def test_internal_error(self, authorized_client, mock_get_or_error):
         """Internal server error."""
         mock_get_or_error.side_effect = Exception()
-        response = authorized_client.get(reverse('issues:comments_detail', args=[55]))
+        response = authorized_client.get(reverse('issues:comments_detail', args=[22, 55]))
 
         assert response.status_code == 500
         assert response.json() == {
@@ -797,14 +766,14 @@ class TestCommentUpdateApi:
     def test_success(self, authorized_client, mock_update, mock_comment_get_or_error, comment):
         """Successful updating comment."""
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[20]),
+            reverse('issues:comments_update', args=[22, 55]),
             self.default_payload,
             format='json',
         )
 
         assert response.status_code == 200
         assert response.json() == {}
-        mock_comment_get_or_error.assert_called_with(comment_id=20)
+        mock_comment_get_or_error.assert_called_with(comment_id=55, issue_id=22)
         mock_update.assert_called_with(comment=comment, text='corrected_text')
 
     def test_comment_or_issue_not_found(
@@ -815,7 +784,7 @@ class TestCommentUpdateApi:
         """Issue or comment not found."""
         mock_comment_get_or_error.side_effect = CommentService.CommentNotFoundError()
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[20]),
+            reverse('issues:comments_update', args=[22, 55]),
             self.default_payload,
             format='json',
         )
@@ -829,7 +798,7 @@ class TestCommentUpdateApi:
         """Non authenticated response."""
         client = APIClient()
         response = client.post(
-            reverse('issues:comments_update', args=[20]),
+            reverse('issues:comments_update', args=[22, 55]),
             self.default_payload,
             format='json',
         )
@@ -845,7 +814,7 @@ class TestCommentUpdateApi:
             'wrong_key': 'value',
         }
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[20]),
+            reverse('issues:comments_update', args=[22, 55]),
             payload,
             format='json',
         )
@@ -864,7 +833,7 @@ class TestCommentUpdateApi:
         client.force_authenticate(user=user)
 
         response = client.patch(
-            reverse('issues:comments_update', args=[10]),
+            reverse('issues:comments_update', args=[22, 55]),
             self.default_payload,
             format='json',
         )
@@ -881,7 +850,7 @@ class TestCommentUpdateApi:
         client.force_authenticate(user=user)
 
         response = client.patch(
-            reverse('issues:comments_update', args=[10]),
+            reverse('issues:comments_update', args=[22, 55]),
             self.default_payload,
             format='json',
         )
@@ -891,7 +860,7 @@ class TestCommentUpdateApi:
 
     def test_method_not_allowed(self, authorized_client):
         """Incorrect HTTP method."""
-        response = authorized_client.get(reverse('issues:comments_update', args=[20]))
+        response = authorized_client.get(reverse('issues:comments_update', args=[22, 55]))
 
         assert response.status_code == 405
         assert response.json() == {
@@ -902,7 +871,7 @@ class TestCommentUpdateApi:
         """Internal server error."""
         mock_comment_get_or_error.side_effect = Exception()
         response = authorized_client.patch(
-            reverse('issues:comments_update', args=[10]),
+            reverse('issues:comments_update', args=[22, 55]),
             self.default_payload,
             format='json',
         )

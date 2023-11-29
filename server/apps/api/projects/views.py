@@ -134,9 +134,9 @@ class ReleaseDetailApi(APIView):
         release_date = serializers.DateField(allow_null=True)
         status = serializers.CharField()
 
-    def get(self, request: Request, release_id: int) -> Response:  # noqa: D102
+    def get(self, request: Request, release_id: int, project_id: int) -> Response:  # noqa: D102
         try:
-            release = ReleaseService.get_by_id(release_id=release_id)
+            release = ReleaseService.get_by_id(project_id=project_id, release_id=release_id)
         except ReleaseService.ReleaseNotFoundError as exc:
             raise NotFound() from exc
 
@@ -162,12 +162,16 @@ class ReleaseUpdateApi(APIView):
 
             return attrs
 
-    def patch(self, request: Request, release_id: int) -> Response:  # noqa: D102
+    def patch(self, request: Request, release_id: int, project_id: int) -> Response:  # noqa: D102
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
-            release = ReleaseService.get_or_error(release_id=release_id, join_project=True)
+            release = ReleaseService.get_or_error(
+                project_id=project_id,
+                release_id=release_id,
+                join_project=True,
+            )
         except ReleaseService.ReleaseNotFoundError as exc:
             raise NotFound() from exc
 

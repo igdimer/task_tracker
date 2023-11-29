@@ -14,7 +14,10 @@ class TestReleaseServiceGetById:
     def test_release_exist(self, release):
         """Release exists."""
         ReleaseFactory()
-        result_release = ReleaseService.get_by_id(release.id)
+        result_release = ReleaseService.get_by_id(
+            release_id=release.id,
+            project_id=release.project_id,
+        )
 
         assert result_release.version == release.version
         assert result_release.description == release.description
@@ -24,7 +27,12 @@ class TestReleaseServiceGetById:
     def test_release_not_found(self):
         """Release does not exist."""
         with pytest.raises(ReleaseService.ReleaseNotFoundError):
-            ReleaseService.get_by_id(release_id=999)
+            ReleaseService.get_by_id(release_id=999, project_id=999)
+
+    def test_wrong_project_id(self, release):
+        """Wrong project_id was provided."""
+        with pytest.raises(ReleaseService.ReleaseNotFoundError):
+            ReleaseService.get_by_id(release_id=release.id, project_id=999)
 
 
 @pytest.mark.django_db()
