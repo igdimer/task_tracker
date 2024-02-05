@@ -29,4 +29,9 @@ urlpatterns = [
         views.CommentUpdateApi.as_view(),
         name='comments_update',
     ),
+    path(
+        '<int:issue_id>/comments/<int:comment_id>/delete',
+        views.CommentDeleteApi.as_view(),
+        name='comments_delete',
+    ),
 ]

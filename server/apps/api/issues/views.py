@@ -195,3 +195,20 @@ class CommentListApi(APIView):
         data = self.OutputSerializer(comments, many=True).data
 
         return Response(data)
+
+
+class CommentDeleteApi(APIView):
+    """API for deleting comments."""
+
+    permission_classes = [permissions.IsAdmin | permissions.IsAuthor]
+
+    def delete(self, request: Request, comment_id: int, issue_id: int) -> Response:   # noqa: D102
+        try:
+            comment = CommentService.get_or_error(comment_id=comment_id, issue_id=issue_id)
+        except CommentService.CommentNotFoundError as exc:
+            raise NotFound() from exc
+
+        self.check_object_permissions(request, comment)
+        CommentService.delete(comment=comment)
+
+        return Response({})

@@ -89,7 +89,7 @@ class TestCommentServiceGetById:
 
 @pytest.mark.django_db()
 class TestCommentServiceUpdate:
-    """Testing method get_by_id of CommentService."""
+    """Testing method update of CommentService."""
 
     def test_success(self, comment):
         """Successful updating comment."""
@@ -102,7 +102,7 @@ class TestCommentServiceUpdate:
 
 @pytest.mark.django_db()
 class TestCommentServiceList:
-    """Testing method list of CommentService."""
+    """Testing method get_list of CommentService."""
 
     def test_success(self, issue):
         """Success getting list of comments."""
@@ -130,3 +130,13 @@ class TestCommentServiceList:
         """Issue not found."""
         with pytest.raises(IssueService.IssueNotFoundError):
             CommentService.get_list(999)
+
+
+@pytest.mark.django_db()
+class TestCommentServiceDelete:
+    """Testing method delete of CommentService."""
+
+    def test_success(self, comment):
+        """Successful deleting comment."""
+        CommentService.delete(comment=comment)
+        assert not Comment.objects.all()

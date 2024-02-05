@@ -293,3 +293,8 @@ class CommentService:
         """Get comments list of issue."""
         issue = IssueService.get_or_error(issue_id=issue_id)
         return Comment.objects.filter(issue=issue)
+
+    @classmethod
+    def delete(cls, comment: Comment) -> None:
+        """Delete comment."""
+        comment.delete()

@@ -1579,6 +1579,79 @@
         }
       }
     },
+    "/issues/{issue_id}/comments/{comment_id}/delete": {
+      "delete": {
+        "tags": [
+          "issues"
+        ],
+        "summary": "Delete comment",
+        "description": "Takes path parameter issue_id and comment_id.",
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 - Comment was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401 - Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403 - PermissionDenied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeniedError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404 - Comment is not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "500 - Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/create":{
       "post": {
         "tags": [

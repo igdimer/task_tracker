@@ -776,12 +776,12 @@ class TestCommentUpdateApi:
         mock_comment_get_or_error.assert_called_with(comment_id=55, issue_id=22)
         mock_update.assert_called_with(comment=comment, text='corrected_text')
 
-    def test_comment_or_issue_not_found(
+    def test_comment_not_found(
         self,
         authorized_client,
         mock_comment_get_or_error,
     ):
-        """Issue or comment not found."""
+        """Comment not found."""
         mock_comment_get_or_error.side_effect = CommentService.CommentNotFoundError()
         response = authorized_client.patch(
             reverse('issues:comments_update', args=[22, 55]),
@@ -875,6 +875,94 @@ class TestCommentUpdateApi:
             self.default_payload,
             format='json',
         )
+
+        assert response.status_code == 500
+        assert response.json() == {
+            'detail': 'Internal Server Error',
+        }
+
+
+@pytest.mark.django_db()
+class TestCommentDeleteApi:
+    """Testing CommentDeleteApi."""
+
+    @pytest.fixture()
+    def mock_delete(self):
+        """Mock fixture method update of CommentService."""
+        with mock.patch('server.apps.issues.services.CommentService.delete') as mock_method:
+            yield mock_method
+
+    def test_success(self, authorized_client, mock_comment_get_or_error, mock_delete, comment):
+        """Successful response."""
+        response = authorized_client.delete(reverse('issues:comments_delete', args=[22, 55]))
+
+        assert response.status_code == 200
+        assert response.json() == {}
+        mock_comment_get_or_error.assert_called_with(comment_id=55, issue_id=22)
+        mock_delete.assert_called_with(comment=comment)
+
+    def test_comment_not_found(
+        self,
+        authorized_client,
+        mock_comment_get_or_error,
+    ):
+        """Comment not found."""
+        mock_comment_get_or_error.side_effect = CommentService.CommentNotFoundError()
+        response = authorized_client.delete(reverse('issues:comments_delete', args=[22, 55]))
+
+        assert response.status_code == 404
+        assert response.json() == {
+            'detail': 'Not found.',
+        }
+
+    def test_auth_fail(self):
+        """Non authenticated response."""
+        client = APIClient()
+        response = client.delete(reverse('issues:comments_delete', args=[22, 55]))
+
+        assert response.status_code == 401
+        assert response.json() == {
+            'detail': 'Incorrect authentication credentials.',
+        }
+
+    def test_permission_denied(self, mock_comment_get_or_error):
+        """User has no permission to update comment."""
+        user = UserFactory(email='another@user.com')
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.delete(reverse('issues:comments_delete', args=[22, 55]))
+
+        assert response.status_code == 403
+        assert response.json() == {
+            'detail': 'You do not have permission to perform this action.',
+        }
+
+    def test_admin_access(self, mock_comment_get_or_error, comment, mock_delete):
+        """Response from admin user."""
+        user = UserFactory(email='another@user.com', is_admin=True)
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.delete(reverse('issues:comments_delete', args=[22, 55]))
+
+        mock_delete.assert_called_with(comment=comment)
+        assert response.status_code == 200
+        assert response.json() == {}
+
+    def test_method_not_allowed(self, authorized_client):
+        """Incorrect HTTP method."""
+        response = authorized_client.post(reverse('issues:comments_delete', args=[22, 55]))
+
+        assert response.status_code == 405
+        assert response.json() == {
+            'detail': 'Method "POST" not allowed.',
+        }
+
+    def test_internal_error(self, authorized_client, mock_comment_get_or_error):
+        """Internal server error."""
+        mock_comment_get_or_error.side_effect = Exception()
+        response = authorized_client.delete(reverse('issues:comments_delete', args=[22, 55]))
 
         assert response.status_code == 500
         assert response.json() == {

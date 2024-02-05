@@ -87,7 +87,7 @@ class Issue(BaseModel):
         return self.code
 
     def save(self, *args, **kwargs) -> None:
-        """Additionally set field 'number'."""
+        """Additionally set field 'code'."""
         if not self.code:
             project = self.project
             issue_count = Issue.objects.filter(project=project).count()
